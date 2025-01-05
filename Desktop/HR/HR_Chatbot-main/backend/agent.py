@@ -1,6 +1,7 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import initialize_agent, Tool
-from langchain.agents import AgentType
+from langchain.tools import StructuredTool
+from langchain.agents import AgentType , StructuredChatAgent
 from langchain.schema import HumanMessage
 import pandas as pd
 from datetime import datetime
@@ -9,7 +10,15 @@ from typing import Dict, List, Optional
 from tools.rag_tool import RAGTool
 from tools.vacation_tool import VacationTool
 from tools.ticket_tool import TicketTool
+import json 
+from langchain.tools import StructuredTool
+from pydantic import BaseModel, Field
 
+class VacationRequestSchema(BaseModel):
+    employee_id: str = Field(description="The ID of the employee requesting vacation")
+    start_date: str = Field(description="The start date of the vacation (YYYY-MM-DD)")
+    end_date: str = Field(description="The end date of the vacation (YYYY-MM-DD)")
+    request_type: str = Field(description="The type of request, e.g., 'vacation'")
 class HRAgent:
     def __init__(self, google_api_key: str, vacations_file: str, tickets_file: str):
         """Initialize the HR Agent with necessary tools and configurations."""
@@ -22,7 +31,7 @@ class HRAgent:
 
         # Initialize Gemini LLM
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-pro",
+            model="gemini-1.5-flash",
             google_api_key=google_api_key,
             temperature=0.3,
             convert_system_message_to_human=True
@@ -30,20 +39,20 @@ class HRAgent:
 
         # Define tools for the agent
         self.tools = [
-            Tool(
+            StructuredTool.from_function(
                 name="PolicyQuery",
                 func=self.rag_tool.query,
-                description="Useful for answering questions about HR policies and regulations. Input should be the policy-related question."
-            ),
-            Tool(
+                description="Useful for answering questions about HR policies and regulations. Input should be the policy-related question as a string."
+                ),
+            StructuredTool.from_function(
                 name="CheckVacationBalance",
                 func=self.vacation_tool.check_balance,
-                description="Check an employee's vacation balance. Input should be the employee_id."
+                description="Check an employee's vacation balance. Input should be the employee_id as a string."
             ),
-            Tool(
+            StructuredTool.from_function(
                 name="CreateVacationRequest",
                 func=self.ticket_tool.create_ticket,
-                description="Create a vacation request ticket. Input should be a JSON string with employee_id, start_date, end_date, and request_type."
+                description="Create a vacation request ticket. Input should be a dictionary with keys: 'employee_id', 'start_date' (YYYY-MM-DD), 'end_date' (YYYY-MM-DD), and 'request_type'."
             )
         ]
 
@@ -51,7 +60,7 @@ class HRAgent:
         self.agent = initialize_agent(
             self.tools,
             self.llm,
-            agent=AgentType.CHAT_ZERO_SHOT_REACT_DESCRIPTION,
+            agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             verbose=True,
             handle_parsing_errors=True,
             max_iterations=3
@@ -115,26 +124,9 @@ class HRAgent:
             print(f"Error getting vacation balance: {str(e)}")
             return {"error": "Could not retrieve vacation balance"}
 
-    def create_vacation_ticket(self, employee_id: str, start_date: str, 
-                             end_date: str, request_type: str, notes: str = "") -> Dict:
+    def create_vacation_ticket(self, employee_id: str, start_date: str, end_date: str, request_type: str, notes: str = "") -> Dict:
         """Create a new vacation request ticket."""
-        try:
-            # First check if employee has sufficient balance
-            balance = self.vacation_tool.check_balance(employee_id)
-            if balance.get("error"):
-                return balance
-
-            # Create ticket if balance is sufficient
-            return self.ticket_tool.create_ticket({
-                "employee_id": employee_id,
-                "start_date": start_date,
-                "end_date": end_date,
-                "request_type": request_type,
-                "notes": notes
-            })
-        except Exception as e:
-            print(f"Error creating vacation ticket: {str(e)}")
-            return {"error": "Could not create vacation ticket"}
+        return self.ticket_tool.create_ticket(employee_id, start_date, end_date, request_type, notes)
 
 def main():
     """Test the HR Agent"""

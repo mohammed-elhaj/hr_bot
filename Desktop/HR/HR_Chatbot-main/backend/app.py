@@ -5,6 +5,10 @@ import os
 from datetime import datetime
 from agent import HRAgent
 import pandas as pd
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -156,15 +160,24 @@ def submit_vacation_request():
     """Submit a new vacation request"""
     try:
         data = request.json
+        employee_id = data.get('employee_id')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        request_type = data.get('request_type')
+        notes = data.get('notes', '')
+
+        if not all([employee_id, start_date, end_date, request_type]):
+            return jsonify({'error': 'Missing required fields'}), 400
+
         ticket = agent.create_vacation_ticket(
-            employee_id=data.get('employee_id'),
-            start_date=data.get('start_date'),
-            end_date=data.get('end_date'),
-            request_type=data.get('request_type'),
-            notes=data.get('notes', '')
+            employee_id=employee_id,
+            start_date=start_date,
+            end_date=end_date,
+            request_type=request_type,
+            notes=notes
         )
         return jsonify(ticket)
-        
+
     except Exception as e:
         print(f"Error submitting vacation request: {str(e)}")
         return jsonify({

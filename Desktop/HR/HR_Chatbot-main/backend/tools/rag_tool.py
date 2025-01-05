@@ -1,7 +1,7 @@
 # tools/rag_tool.py
 from typing import Dict, List, Optional
 import os
-from rag_system import ArabicRAGSystem
+from rag_system import HRRAGSystem
 
 class RAGTool:
     """Tool for handling HR document queries using RAG system"""
@@ -9,7 +9,7 @@ class RAGTool:
     def __init__(self, google_api_key: str):
         """Initialize RAG Tool with configurations."""
         self.api_key = google_api_key
-        self.rag_system = ArabicRAGSystem(google_api_key)
+        self.rag_system = HRRAGSystem(google_api_key)
         self.active_docs = []
 
     def query(self, question: str) -> str:

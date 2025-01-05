@@ -42,31 +42,24 @@ class TicketTool:
             # Fallback to timestamp-based ID
             return f"VT{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def create_ticket(self, request_data: str) -> Dict:
+    def create_ticket(self, employee_id: str, start_date: str, end_date: str, request_type: str, notes: str = "") -> Dict:
         """Create a new vacation request ticket."""
         try:
-            # Parse request data if it's a string
-            if isinstance(request_data, str):
-                request_data = json.loads(request_data)
-            
-            # Calculate days count
-            start_date = datetime.strptime(request_data['start_date'], '%Y-%m-%d')
-            end_date = datetime.strptime(request_data['end_date'], '%Y-%m-%d')
-            days_count = (end_date - start_date).days + 1
-            
-            # Create new ticket
+            # No need for JSON parsing anymore
+            days_count = (datetime.strptime(start_date,'%Y-%m-%d') - datetime.strptime(end_date, '%Y-%m-%d')).days + 1
+
             new_ticket = {
                 'ticket_id': self._generate_ticket_id(),
-                'employee_id': request_data['employee_id'],
-                'request_type': request_data['request_type'],
-                'start_date': request_data['start_date'],
-                'end_date': request_data['end_date'],
+                'employee_id': employee_id,
+                'request_type': request_type,
+                'start_date': start_date,
+                'end_date': end_date,
                 'days_count': days_count,
                 'status': 'pending',
                 'manager_id': None,
                 'request_date': datetime.now().strftime('%Y-%m-%d'),
                 'response_date': None,
-                'notes': request_data.get('notes', '')
+                'notes': notes
             }
             
             # Add to CSV

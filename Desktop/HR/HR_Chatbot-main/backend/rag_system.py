@@ -48,7 +48,7 @@ class DocumentProcessor:
             api_key: Google API key for Gemini
             base_path: Base path for storing documents and collections
         """
-        self.api_key = api_key
+        self.api_key = os.getenv("GOOGLE_API_KEY", api_key)
         self.base_path = base_path
         genai.configure(api_key=api_key)
         
@@ -232,7 +232,7 @@ class HRRAGSystem:
         
         # Initialize LLM
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-pro",
+            model="gemini-1.5-flash",
             google_api_key=api_key,
             temperature=0.3,
             convert_system_message_to_human=True

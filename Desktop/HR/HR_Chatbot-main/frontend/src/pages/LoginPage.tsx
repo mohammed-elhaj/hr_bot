@@ -1,30 +1,46 @@
-import React, { useState } from 'react';
+// src/pages/LoginPage.tsx
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, User, Lock, AlertCircle } from 'lucide-react';
 import Layout from '../components/common/Layout';
+import { useAuth } from '../hooks/useAuth';
+
+interface FormErrors {
+  username?: string;
+  password?: string;
+  submit?: string;
+}
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/chat');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+    if (errors[name as keyof FormErrors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
     if (!formData.username.trim()) {
       newErrors.username = 'اسم المستخدم مطلوب';
     }
@@ -33,26 +49,26 @@ const LoginPage = () => {
     } else if (formData.password.length < 6) {
       newErrors.password = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
     }
-    return newErrors;
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newErrors = validateForm();
     
-    if (Object.keys(newErrors).length === 0) {
-      setIsLoading(true);
-      // Simulate API call
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        navigate('/chat'); // Navigate to chat page after successful login
-      } catch (error) {
-        setErrors({ submit: 'حدث خطأ أثناء تسجيل الدخول' });
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      setErrors(newErrors);
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    try {
+      await login(formData.username, formData.password);
+      navigate('/chat');
+    } catch (error) {
+      setErrors({
+        submit: 'فشل تسجيل الدخول. يرجى التحقق من اسم المستخدم وكلمة المرور.',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -65,9 +81,7 @@ const LoginPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-md w-full"
           >
-            {/* Login Card */}
             <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-gray-100">
-              {/* Header */}
               <div className="text-center mb-8">
                 <motion.div
                   initial={{ scale: 0 }}
@@ -80,7 +94,6 @@ const LoginPage = () => {
                 <p className="text-gray-600 mt-2">سجل دخولك للوصول إلى لوحة التحكم</p>
               </div>
 
-              {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Username Field */}
                 <div>
@@ -153,6 +166,16 @@ const LoginPage = () => {
                   </div>
                 </div>
 
+                {errors.submit && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-red-500 text-sm text-center"
+                  >
+                    {errors.submit}
+                  </motion.div>
+                )}
+
                 {/* Submit Button */}
                 <motion.button
                   whileHover={{ scale: 1.01 }}
@@ -171,24 +194,7 @@ const LoginPage = () => {
                     'تسجيل الدخول'
                   )}
                 </motion.button>
-
-                {errors.submit && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-red-500 text-sm text-center"
-                  >
-                    {errors.submit}
-                  </motion.div>
-                )}
               </form>
-
-              {/* Additional Links */}
-              <div className="mt-6 text-center">
-                <a href="#" className="text-sm text-primary-600 hover:text-primary-700">
-                  نسيت كلمة المرور؟
-                </a>
-              </div>
             </div>
           </motion.div>
         </div>
