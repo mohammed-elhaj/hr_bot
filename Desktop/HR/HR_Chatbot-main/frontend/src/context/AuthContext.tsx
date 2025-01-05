@@ -1,22 +1,24 @@
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types/api';
+import { authService } from '../services/auth';
 import { storage } from '../utils/storage';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  error: string | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
-// Create the context with undefined as initial value
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for existing session
@@ -33,20 +35,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string) => {
     setIsLoading(true);
+    setError(null);
+
     try {
-      // TODO: Replace with actual API call
-      // Simulated login for now
-      const mockUser: User = {
-        id: '1',
-        name: username,
-        role: 'employee',
-        employee_id: '1001'
-      };
+      const response = await authService.login({ username, password });
+      const userData = response.user;
       
-      setUser(mockUser);
-      storage.setUser(mockUser);
-      return mockUser; // Make sure to return the user
-    } catch (error) {
+      setUser(userData);
+      storage.setUser(userData);
+    } catch (error: any) {
+      setError(error.message || 'فشل تسجيل الدخول');
       throw error;
     } finally {
       setIsLoading(false);
@@ -54,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    authService.logout();
     setUser(null);
     storage.clear();
   };
@@ -64,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         isLoading,
+        error,
         login,
         logout,
       }}
@@ -73,5 +73,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// Make sure to export both the context and the provider
-export { AuthContext };
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+
+

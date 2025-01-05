@@ -1,17 +1,20 @@
 // src/pages/ChatPage.tsx
-import React, { useEffect, useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, Loader2, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Send, Bot, User, AlertCircle } from 'lucide-react';
 import Layout from '../components/common/Layout';
 import { useChat } from '../hooks/useChat';
 import { useAuth } from '../hooks/useAuth';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import PageLoader from '../components/common/PageLoader';
+import ContentSkeleton from '../components/common/ContentSkeleton';
 
 const ChatPage = () => {
-  const { state, sendMessage } = useChat();
   const { user } = useAuth();
-  const [inputMessage, setInputMessage] = React.useState('');
+  const { state, sendMessage } = useChat();
+  const [inputMessage, setInputMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const initialSuggestions = [
     { id: '1', text: 'كيف يمكنني تقديم إجازة؟' },
@@ -29,10 +32,16 @@ const ChatPage = () => {
   };
 
   const handleSendMessage = async (content: string) => {
-    if (!content.trim() || state.isLoading) return;
+    if (!content.trim() || sendingMessage) return;
 
+    setSendingMessage(true);
     setInputMessage('');
-    await sendMessage(content);
+    
+    try {
+      await sendMessage(content);
+    } finally {
+      setSendingMessage(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -41,6 +50,11 @@ const ChatPage = () => {
       handleSendMessage(inputMessage);
     }
   };
+
+  // Show full page loader for initial load
+  if (state.isLoading && !state.messages.length) {
+    return <PageLoader message="جاري تحميل المحادثة..." />;
+  }
 
   return (
     <Layout>
@@ -63,6 +77,11 @@ const ChatPage = () => {
               </motion.div>
             )}
 
+            {/* Loading Skeleton */}
+            {state.isLoading && state.messages.length > 0 && (
+              <ContentSkeleton type="message" count={3} />
+            )}
+
             {/* Message List */}
             <AnimatePresence>
               {state.messages.map((message) => (
@@ -83,25 +102,24 @@ const ChatPage = () => {
                       )}
                     </div>
                     <div className={`flex flex-col ${message.type === 'user' ? 'items-end' : 'items-start'}`}>
-                      <div 
-                        className={`rounded-2xl px-4 py-2 ${
-                          message.type === 'user' 
-                            ? 'bg-primary-500 text-white' 
-                            : 'bg-white border border-gray-200'
-                        }`}
-                      >
+                      <div className={`rounded-2xl px-4 py-2 ${
+                        message.type === 'user' 
+                          ? 'bg-primary-500 text-white' 
+                          : 'bg-white border border-gray-200'
+                      }`}>
                         <p className="whitespace-pre-wrap">{message.content}</p>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-gray-500">
-                          {message.timestamp.toLocaleTimeString('ar-SA', { 
+                          {new Date(message.timestamp).toLocaleTimeString('ar-SA', { 
                             hour: '2-digit', 
                             minute: '2-digit' 
                           })}
                         </span>
                         {message.status === 'error' && (
-                          <span className="text-xs text-red-500">
-                            فشل في الإرسال
+                          <span className="text-red-500 text-xs flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            فشل الإرسال
                           </span>
                         )}
                       </div>
@@ -111,21 +129,7 @@ const ChatPage = () => {
               ))}
             </AnimatePresence>
 
-            {/* Loading Indicator */}
-            <AnimatePresence>
-              {state.isLoading && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="flex items-center gap-2 text-gray-500"
-                >
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">جاري الكتابة...</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
+            {/* Scroll Anchor */}
             <div ref={messagesEndRef} />
           </div>
         </div>
@@ -157,7 +161,6 @@ const ChatPage = () => {
             <div className="flex items-end gap-4">
               <div className="flex-1 bg-gray-100 rounded-2xl">
                 <textarea
-                  ref={inputRef}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
@@ -165,16 +168,22 @@ const ChatPage = () => {
                   className="w-full bg-transparent border-none resize-none px-4 py-3 max-h-32 focus:ring-0 focus:outline-none"
                   rows={1}
                   dir="rtl"
+                  disabled={sendingMessage}
                 />
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSendMessage(inputMessage)}
-                disabled={!inputMessage.trim() || state.isLoading}
-                className="flex-shrink-0 p-3 rounded-full bg-primary-500 text-white hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!inputMessage.trim() || sendingMessage}
+                className="flex-shrink-0 p-3 rounded-full bg-primary-500 text-white hover:bg-primary-600 
+                          disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Send className="w-5 h-5" />
+                {sendingMessage ? (
+                  <LoadingSpinner size="sm" color="white" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
               </motion.button>
             </div>
           </div>

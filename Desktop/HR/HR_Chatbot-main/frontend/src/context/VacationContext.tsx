@@ -1,76 +1,157 @@
 // src/context/VacationContext.tsx
-import React, { createContext, useContext, useState } from 'react';
-import { 
-  vacationService, 
-  VacationBalance, 
-  VacationRequest, 
-  VacationRequestResponse 
-} from '../services/vacation';
-import { getErrorMessage } from '../utils/errors';
 
-interface VacationContextType {
+import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import { useAuth } from './AuthContext';
+import { vacationService } from '../services/vacation';
+import { 
+  VacationBalance, 
+  VacationRequest,
+  CreateVacationRequestPayload 
+} from '../types/vacation';
+
+interface VacationState {
   balance: VacationBalance | null;
+  requests: VacationRequest[];
   isLoading: boolean;
   error: string | null;
-  fetchBalance: (employeeId: string) => Promise<void>;
-  submitRequest: (request: VacationRequest) => Promise<VacationRequestResponse>;
+}
+
+type VacationAction =
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_BALANCE'; payload: VacationBalance }
+  | { type: 'SET_REQUESTS'; payload: VacationRequest[] }
+  | { type: 'ADD_REQUEST'; payload: VacationRequest }
+  | { type: 'UPDATE_REQUEST'; payload: VacationRequest }
+  | { type: 'SET_ERROR'; payload: string | null };
+
+const initialState: VacationState = {
+  balance: null,
+  requests: [],
+  isLoading: false,
+  error: null
+};
+
+const vacationReducer = (state: VacationState, action: VacationAction): VacationState => {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload, error: null };
+    case 'SET_BALANCE':
+      return { ...state, balance: action.payload };
+    case 'SET_REQUESTS':
+      return { ...state, requests: action.payload };
+    case 'ADD_REQUEST':
+      return { ...state, requests: [...state.requests, action.payload] };
+    case 'UPDATE_REQUEST':
+      return {
+        ...state,
+        requests: state.requests.map(req =>
+          req.id === action.payload.id ? action.payload : req
+        )
+      };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload, isLoading: false };
+    default:
+      return state;
+  }
+};
+
+interface VacationContextType {
+  state: VacationState;
+  fetchBalance: () => Promise<void>;
+  fetchRequests: () => Promise<void>;
+  submitRequest: (request: CreateVacationRequestPayload) => Promise<void>;
+  cancelRequest: (requestId: string) => Promise<void>;
   clearError: () => void;
 }
 
 const VacationContext = createContext<VacationContextType | undefined>(undefined);
 
 export const VacationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [balance, setBalance] = useState<VacationBalance | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(vacationReducer, initialState);
+  const { user } = useAuth();
 
-  const fetchBalance = async (employeeId: string) => {
-    setIsLoading(true);
-    setError(null);
+  const fetchBalance = useCallback(async () => {
+    if (!user?.id) return;
 
+    dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const response = await vacationService.getBalance(employeeId);
-      setBalance(response.data);
+      const response = await vacationService.getBalance(user.id);
+      dispatch({ type: 'SET_BALANCE', payload: response.data });
     } catch (error) {
-      setError(getErrorMessage(error));
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'حدث خطأ في جلب رصيد الإجازات' });
     } finally {
-      setIsLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [user]);
+
+  const fetchRequests = useCallback(async () => {
+    if (!user?.id) return;
+
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const response = await vacationService.getRequests(user.id);
+      dispatch({ type: 'SET_REQUESTS', payload: response.data });
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'حدث خطأ في جلب طلبات الإجازة' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [user]);
+
+  const submitRequest = async (request: CreateVacationRequestPayload) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const response = await vacationService.submitRequest(request);
+      dispatch({ type: 'ADD_REQUEST', payload: response.data });
+      await fetchBalance(); // Refresh balance after successful request
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'حدث خطأ في تقديم طلب الإجازة' });
+      throw error;
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
-  const submitRequest = async (request: VacationRequest) => {
-    setIsLoading(true);
-    setError(null);
-
+  const cancelRequest = async (requestId: string) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const response = await vacationService.submitRequest(request);
-      // Refresh balance after successful request
-      await fetchBalance(request.employee_id);
-      return response.data;
+      const response = await vacationService.cancelRequest(requestId);
+      dispatch({ type: 'UPDATE_REQUEST', payload: response.data });
+      await fetchBalance(); // Refresh balance after cancellation
     } catch (error) {
-      setError(getErrorMessage(error));
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'حدث خطأ في إلغاء طلب الإجازة' });
       throw error;
     } finally {
-      setIsLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
   const clearError = () => {
-    setError(null);
+    dispatch({ type: 'SET_ERROR', payload: null });
   };
 
   return (
     <VacationContext.Provider
       value={{
-        balance,
-        isLoading,
-        error,
+        state,
         fetchBalance,
+        fetchRequests,
         submitRequest,
-        clearError,
+        cancelRequest,
+        clearError
       }}
     >
       {children}
     </VacationContext.Provider>
   );
 };
+
+export const useVacation = () => {
+  const context = useContext(VacationContext);
+  if (context === undefined) {
+    throw new Error('useVacation must be used within a VacationProvider');
+  }
+  return context;
+};
+
+export default VacationContext;

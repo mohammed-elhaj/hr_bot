@@ -1,0 +1,100 @@
+[
+  {
+    "id": "1",
+    "content": "ما هي سياسة العمل عن بعد؟",
+    "type": "user",
+    "timestamp": "2025-01-05T12:29:03.135116",
+    "status": "sent"
+  },
+  {
+    "id": "3",
+    "content": "The provided policy document does not contain information about remote work policy. Please visit www.hrsd.gov.sa for this information.",
+    "type": "bot",
+    "timestamp": "2025-01-05T12:29:03.135116",
+    "status": "sent"
+  },
+  {
+    "id": "3",
+    "content": "ما هو نص المادة الاولى",
+    "type": "user",
+    "timestamp": "2025-01-05T12:30:09.986223",
+    "status": "sent"
+  },
+  {
+    "id": "5",
+    "content": "The text of the first article is:\n\n\"Council of Civil Service Resolution No. 1/1364, dated 18/10/1429 AH, stipulates that (compensation for those appointed under the wages clause in government agencies upon termination of their service for their accrued leave that they have not enjoyed - in accordance with Article (111) of the Labor System issued by Royal Decree No. (M51) dated 22/8/1426 AH, and Article (111) referred to stipulates that (the employee has the right to receive his wages for the days of accrued leave if he leaves work before using it, for the period for which he has not received his leave).\"",
+    "type": "bot",
+    "timestamp": "2025-01-05T12:30:09.986223",
+    "status": "sent"
+  },
+  {
+    "id": "5",
+    "content": "what is my vacation balance",
+    "type": "user",
+    "timestamp": "2025-01-05T12:32:16.786455",
+    "status": "sent"
+  },
+  {
+    "id": "7",
+    "content": "Your current vacation balance is 14 days.",
+    "type": "bot",
+    "timestamp": "2025-01-05T12:32:16.786455",
+    "status": "sent"
+  },
+  {
+    "id": "7",
+    "content": "genearet a ticket for 10 days vacation",
+    "type": "user",
+    "timestamp": "2025-01-05T12:32:47.086471",
+    "status": "sent"
+  },
+  {
+    "id": "9",
+    "content": "Your vacation request for 10 days (March 1st to March 10th, 2024) has been successfully created. Your ticket ID is VT2025016.",
+    "type": "bot",
+    "timestamp": "2025-01-05T12:32:47.086471",
+    "status": "sent"
+  },
+  {
+    "id": "9",
+    "content": "genearet a ticket for 10 days vacation",
+    "type": "user",
+    "timestamp": "2025-01-05T14:15:54.155680",
+    "status": "sent"
+  },
+  {
+    "id": "11",
+    "content": "عذراً، حدث خطأ أثناء معالجة طلبك. الرجاء المحاولة مرة أخرى.",
+    "type": "bot",
+    "timestamp": "2025-01-05T14:15:54.155680",
+    "status": "sent"
+  },
+  {
+    "id": "11",
+    "content": "tell me all what you know about me",
+    "type": "user",
+    "timestamp": "2025-01-05T14:15:55.731862",
+    "status": "sent"
+  },
+  {
+    "id": "13",
+    "content": "عذراً، حدث خطأ أثناء معالجة طلبك. الرجاء المحاولة مرة أخرى.",
+    "type": "bot",
+    "timestamp": "2025-01-05T14:15:55.731862",
+    "status": "sent"
+  },
+  {
+    "id": "13",
+    "content": "genearet a ticket for 10 days vacation",
+    "type": "user",
+    "timestamp": "2025-01-05T15:08:53.408378",
+    "status": "sent"
+  },
+  {
+    "id": "15",
+    "content": "Your vacation request (VT2025017) has been successfully created.  You requested 10 days of vacation from March 15th to March 24th, 2024. ",
+    "type": "bot",
+    "timestamp": "2025-01-05T15:08:53.408378",
+    "status": "sent"
+  }
+]

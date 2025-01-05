@@ -1,38 +1,82 @@
 // src/services/vacation.ts
-import apiService, { ApiResponse } from './api';
 
-export interface VacationBalance {
-  status: string;
-  employee_id: string;
-  name: string;
-  annual_balance: number;
-  used_days: number;
-  remaining_balance: number;
-  last_updated: string;
-}
+import apiService from './api';
+import { 
+  VacationBalance, 
+  VacationRequest, 
+  CreateVacationRequestPayload,
+  VacationBalanceResponse,
+  VacationRequestResponse,
+  VacationRequestListResponse
+} from '../types/vacation';
+import { API_ENDPOINTS } from '../constants';
 
-export interface VacationRequest {
-  employee_id: string;
-  start_date: string;
-  end_date: string;
-  request_type: string;
-  notes?: string;
-}
-
-export interface VacationRequestResponse {
-  status: string;
-  message: string;
-  ticket_id: string;
-}
-
-export class VacationService {
-  async getBalance(employeeId: string): Promise<ApiResponse<VacationBalance>> {
-    return apiService.get<VacationBalance>(`/api/employee/vacation-balance/${employeeId}`);
+class VacationService {
+  /**
+   * Get vacation balance for an employee
+   */
+  async getBalance(employeeId: string): Promise<VacationBalanceResponse> {
+    try {
+      const response = await apiService.get<VacationBalanceResponse>(
+        `${API_ENDPOINTS.VACATION_BALANCE}/${employeeId}`
+      );
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
-  async submitRequest(request: VacationRequest): Promise<ApiResponse<VacationRequestResponse>> {
-    return apiService.post<VacationRequestResponse>('/api/employee/vacation-request', request);
+  /**
+   * Submit a new vacation request
+   */
+  async submitRequest(request: CreateVacationRequestPayload): Promise<VacationRequestResponse> {
+    try {
+      const response = await apiService.post<VacationRequestResponse>(
+        API_ENDPOINTS.VACATION_REQUEST,
+        request
+      );
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Get list of vacation requests for an employee
+   */
+  async getRequests(employeeId: string): Promise<VacationRequestListResponse> {
+    try {
+      const response = await apiService.get<VacationRequestListResponse>(
+        `${API_ENDPOINTS.VACATION_REQUEST}?employee_id=${employeeId}`
+      );
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Cancel a vacation request
+   */
+  async cancelRequest(requestId: string): Promise<VacationRequestResponse> {
+    try {
+      const response = await apiService.post<VacationRequestResponse>(
+        `${API_ENDPOINTS.VACATION_REQUEST}/${requestId}/cancel`
+      );
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Handle service errors
+   */
+  private handleError(error: any): Error {
+    const message = error.message || 'حدث خطأ في معالجة طلب الإجازة';
+    return new Error(message);
   }
 }
 
 export const vacationService = new VacationService();
+export default vacationService;

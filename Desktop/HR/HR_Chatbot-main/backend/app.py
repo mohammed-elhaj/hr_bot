@@ -6,6 +6,8 @@ from datetime import datetime
 from agent import HRAgent
 import pandas as pd
 from dotenv import load_dotenv
+from datetime import datetime
+import json
 
 # Load environment variables
 load_dotenv()
@@ -32,10 +34,60 @@ def allowed_file(filename):
     """Check if file extension is allowed"""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+           
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    # Simple mock users for MVP
+    mock_users = {
+        'user1': {
+            'id': '1001',
+            'name': 'محمد احمد',
+            'role': 'employee',
+            'employee_id': '1001'
+        }
+        # Add more mock users as needed
+    }
+    
+    if username in mock_users:
+        return jsonify({
+            'status': 'success',
+            'user': mock_users[username]
+        })
+    else:
+        return jsonify({
+            'status': 'error',
+            'message': 'Invalid credentials'
+        }), 401
+
+@app.route('/api/chat/history/<employee_id>', methods=['GET'])
+def get_chat_history(employee_id):
+    try:
+        # Try to load existing history
+        history_file = f'data/chat_history_{employee_id}.json'
+        try:
+            with open(history_file, 'r', encoding='utf-8') as f:
+                history = json.load(f)
+        except FileNotFoundError:
+            history = []
+        
+        return jsonify({
+            'status': 'success',
+            'history': history
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    """Handle chat messages"""
     try:
         data = request.json
         message = data.get('message', '').strip()
@@ -46,6 +98,36 @@ def chat():
         
         # Process message through agent
         response = agent.process_query(message, employee_id)
+        
+        # Save to chat history if employee_id is provided
+        if employee_id:
+            history_file = f'data/chat_history_{employee_id}.json'
+            try:
+                with open(history_file, 'r', encoding='utf-8') as f:
+                    history = json.load(f)
+            except FileNotFoundError:
+                history = []
+            
+            # Add new messages
+            timestamp = datetime.now().isoformat()
+            history.append({
+                'id': str(len(history) + 1),
+                'content': message,
+                'type': 'user',
+                'timestamp': timestamp,
+                'status': 'sent'
+            })
+            history.append({
+                'id': str(len(history) + 2),
+                'content': response,
+                'type': 'bot',
+                'timestamp': timestamp,
+                'status': 'sent'
+            })
+            
+            # Save updated history
+            with open(history_file, 'w', encoding='utf-8') as f:
+                json.dump(history, f, ensure_ascii=False, indent=2)
         
         return jsonify({
             'response': response,

@@ -1,37 +1,34 @@
 // src/utils/storage.ts
 export const storage = {
-    // Token management
-    getToken: (): string | null => {
-      return localStorage.getItem('token');
-    },
-  
-    setToken: (token: string): void => {
-      localStorage.setItem('token', token);
-    },
-  
-    removeToken: (): void => {
-      localStorage.removeItem('token');
-    },
-  
-    // User data management
-    getUser: (): any | null => {
-      const user = localStorage.getItem('user');
-      return user ? JSON.parse(user) : null;
-    },
-  
-    setUser: (user: any): void => {
-      localStorage.setItem('user', JSON.stringify(user));
-    },
-  
-    removeUser: (): void => {
-      localStorage.removeItem('user');
-    },
-  
-    // Session management
-    clear: (): void => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+  getUser: (): any | null => {
+    const user = localStorage.getItem('user');
+    if (!user) return null;
+    
+    try {
+      const parsed = JSON.parse(user);
+      if (parsed.messages) {
+        parsed.messages = parsed.messages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+      }
+      return parsed;
+    } catch (e) {
+      console.error('Error parsing user data:', e);
+      return null;
     }
-  };
-  
-  export default storage;
+  },
+
+  setUser: (user: any): void => {
+    localStorage.setItem('user', JSON.stringify(user));
+  },
+
+  removeUser: (): void => {
+    localStorage.removeItem('user');
+  },
+
+  clear: (): void => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  }
+};

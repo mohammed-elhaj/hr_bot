@@ -1,14 +1,8 @@
 // src/context/ChatContext.tsx
-import React, { createContext, useContext, useReducer } from 'react';
-import { chatService, ChatResponse } from '../services/chat';
-
-export interface Message {
-  id: string;
-  content: string;
-  type: 'user' | 'bot';
-  timestamp: Date;
-  status: 'sending' | 'sent' | 'error';
-}
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { chatService } from '../services/chat';
+import { Message } from '../types/api';
 
 interface ChatState {
   messages: Message[];
@@ -17,6 +11,7 @@ interface ChatState {
 }
 
 type ChatAction =
+  | { type: 'SET_MESSAGES'; payload: Message[] }
   | { type: 'ADD_MESSAGE'; payload: Message }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
@@ -24,20 +19,25 @@ type ChatAction =
 
 const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
   switch (action.type) {
+    case 'SET_MESSAGES':
+      return {
+        ...state,
+        messages: action.payload
+      };
     case 'ADD_MESSAGE':
       return {
         ...state,
-        messages: [...state.messages, action.payload],
+        messages: [...state.messages, action.payload]
       };
     case 'SET_LOADING':
       return {
         ...state,
-        isLoading: action.payload,
+        isLoading: action.payload
       };
     case 'SET_ERROR':
       return {
         ...state,
-        error: action.payload,
+        error: action.payload
       };
     case 'UPDATE_MESSAGE_STATUS':
       return {
@@ -46,7 +46,7 @@ const chatReducer = (state: ChatState, action: ChatAction): ChatState => {
           msg.id === action.payload.id
             ? { ...msg, status: action.payload.status }
             : msg
-        ),
+        )
       };
     default:
       return state;
@@ -61,14 +61,52 @@ interface ChatContextType {
 
 export const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
+const initialState: ChatState = {
+  messages: [],
+  isLoading: false,
+  error: null
+};
+
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(chatReducer, {
-    messages: [],
-    isLoading: false,
-    error: null,
-  });
+  const { user } = useAuth();
+  const [state, dispatch] = useReducer(chatReducer, initialState);
+
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (user?.employee_id) {
+        dispatch({ type: 'SET_LOADING', payload: true });
+        try {
+          const history = await chatService.getChatHistory(user.employee_id);
+          const historyWithDates = history.map(msg => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }));
+          dispatch({ type: 'SET_MESSAGES', payload: historyWithDates });
+        } catch (error) {
+          dispatch({ 
+            type: 'SET_ERROR', 
+            payload: 'فشل في تحميل سجل المحادثات' 
+          });
+        } finally {
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
+      }
+    };
+
+    loadChatHistory();
+  }, [user]);
 
   const sendMessage = async (content: string) => {
+    const currentUser = user; // Store user in variable to avoid closure issues
+    
+    if (!currentUser?.employee_id) {
+      dispatch({ 
+        type: 'SET_ERROR', 
+        payload: 'يجب تسجيل الدخول لإرسال الرسائل' 
+      });
+      return;
+    }
+
     const messageId = Date.now().toString();
     
     dispatch({
@@ -78,41 +116,38 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         content,
         type: 'user',
         timestamp: new Date(),
-        status: 'sending',
-      },
+        status: 'sending'
+      }
     });
 
     dispatch({ type: 'SET_LOADING', payload: true });
 
     try {
-      // Simulated API call for now
-      // Replace with actual API call later
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const response = { data: { response: "مرحباً! كيف يمكنني مساعدتك؟", timestamp: new Date().toISOString() }};
+      const response = await chatService.sendMessage(content, currentUser.employee_id);
       
       dispatch({
         type: 'UPDATE_MESSAGE_STATUS',
-        payload: { id: messageId, status: 'sent' },
+        payload: { id: messageId, status: 'sent' }
       });
 
       dispatch({
         type: 'ADD_MESSAGE',
         payload: {
           id: Date.now().toString(),
-          content: response.data.response,
+          content: response.response,
           type: 'bot',
-          timestamp: new Date(response.data.timestamp),
-          status: 'sent',
-        },
+          timestamp: new Date(response.timestamp),
+          status: 'sent'
+        }
       });
     } catch (error) {
       dispatch({
         type: 'UPDATE_MESSAGE_STATUS',
-        payload: { id: messageId, status: 'error' },
+        payload: { id: messageId, status: 'error' }
       });
       dispatch({
         type: 'SET_ERROR',
-        payload: 'فشل في إرسال الرسالة. يرجى المحاولة مرة أخرى.',
+        payload: 'فشل في إرسال الرسالة. يرجى المحاولة مرة أخرى.'
       });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
@@ -128,7 +163,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         state,
         sendMessage,
-        clearError,
+        clearError
       }}
     >
       {children}
@@ -136,4 +171,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// Make sure to export both the context and the provider
+export const useChat = () => {
+  const context = useContext(ChatContext);
+  if (context === undefined) {
+    throw new Error('useChat must be used within a ChatProvider');
+  }
+  return context;
+};

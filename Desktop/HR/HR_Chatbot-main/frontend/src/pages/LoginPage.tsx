@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, User, Lock, AlertCircle } from 'lucide-react';
 import Layout from '../components/common/Layout';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../context/AuthContext';
 
 interface FormErrors {
   username?: string;
@@ -58,14 +58,14 @@ const LoginPage = () => {
     e.preventDefault();
     
     if (!validateForm()) return;
-
+  
     setIsLoading(true);
     try {
       await login(formData.username, formData.password);
       navigate('/chat');
-    } catch (error) {
+    } catch (error: any) {
       setErrors({
-        submit: 'فشل تسجيل الدخول. يرجى التحقق من اسم المستخدم وكلمة المرور.',
+        submit: error.message || 'فشل تسجيل الدخول. يرجى التحقق من اسم المستخدم وكلمة المرور.',
       });
     } finally {
       setIsLoading(false);

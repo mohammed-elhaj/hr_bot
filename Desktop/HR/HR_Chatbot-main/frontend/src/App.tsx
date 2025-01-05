@@ -7,29 +7,41 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ChatPage from './pages/ChatPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 const App = () => {
+  const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
+    // Here you could send error to your error tracking service
+    console.error('Application Error:', error, errorInfo);
+  };
+
   return (
-    <AuthProvider>
-      <ChatProvider>
-        <VacationProvider>
-          <Router>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route
-                path="/chat"
-                element={
-                  <ProtectedRoute>
-                    <ChatPage />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </Router>
-        </VacationProvider>
-      </ChatProvider>
-    </AuthProvider>
+    <ErrorBoundary onError={handleError}>
+      <AuthProvider>
+        <ChatProvider>
+          <VacationProvider>
+            <Router>
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route
+                    path="/chat"
+                    element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <ChatPage />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    }
+                  />
+                </Routes>
+              </ErrorBoundary>
+            </Router>
+          </VacationProvider>
+        </ChatProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 
