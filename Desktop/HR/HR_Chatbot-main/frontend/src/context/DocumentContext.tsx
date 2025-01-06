@@ -16,6 +16,17 @@ type DocumentAction =
   | { type: 'REMOVE_DOCUMENT'; payload: string }
   | { type: 'SET_ERROR'; payload: string | null };
 
+interface DocumentContextType {
+  state: DocumentState;
+  fetchDocuments: () => Promise<void>;
+  uploadDocument: (file: File) => Promise<void>;
+  deleteDocument: (documentId: string) => Promise<void>;
+  clearError: () => void;
+}
+
+// Create and export the context
+export const DocumentContext = createContext<DocumentContextType | undefined>(undefined);
+
 const initialState: DocumentState = {
   documents: [],
   isLoading: false,
@@ -42,16 +53,6 @@ const documentReducer = (state: DocumentState, action: DocumentAction): Document
   }
 };
 
-interface DocumentContextType {
-  state: DocumentState;
-  fetchDocuments: () => Promise<void>;
-  uploadDocument: (file: File) => Promise<void>;
-  deleteDocument: (documentId: string) => Promise<void>;
-  clearError: () => void;
-}
-
-const DocumentContext = createContext<DocumentContextType | undefined>(undefined);
-
 export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(documentReducer, initialState);
 
@@ -70,23 +71,24 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
-  const uploadDocument = async (file: File) => {
-    dispatch({ type: 'SET_LOADING', payload: true });
+  const uploadDocument = useCallback(async (file: File) => {
+    //dispatch({ type: 'SET_LOADING', payload: true }); //Loading handled by the component
     try {
       const response = await documentService.uploadDocument(file);
       dispatch({ type: 'ADD_DOCUMENT', payload: response.document });
+      return response;
     } catch (error) {
       dispatch({
         type: 'SET_ERROR',
         payload: error instanceof Error ? error.message : 'حدث خطأ في رفع المستند'
       });
-      throw error;
+      throw error; // Re-throw the error after setting it to the state
     } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
+      //dispatch({ type: 'SET_LOADING', payload: false }); //Loading handled by the component
     }
-  };
+  }, []);
 
-  const deleteDocument = async (documentId: string) => {
+  const deleteDocument = useCallback(async (documentId: string) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       await documentService.deleteDocument(documentId);
@@ -100,7 +102,7 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  };
+  }, []);
 
   const clearError = () => {
     dispatch({ type: 'SET_ERROR', payload: null });
@@ -117,16 +119,14 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }}
     >
       {children}
-    </DocumentProvider>
+    </DocumentContext.Provider>
   );
 };
 
 export const useDocuments = () => {
-  const context = useContext(DocumentContext);
-  if (context === undefined) {
-    throw new Error('useDocuments must be used within a DocumentProvider');
-  }
-  return context;
-};
-
-export default DocumentContext;
+    const context = useContext(DocumentContext);
+    if (!context) {
+      throw new Error('useDocuments must be used within a DocumentProvider');
+    }
+    return context;
+  };

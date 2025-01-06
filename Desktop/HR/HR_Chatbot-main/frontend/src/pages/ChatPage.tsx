@@ -1,26 +1,51 @@
 // src/pages/ChatPage.tsx
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, AlertCircle } from 'lucide-react';
+import { 
+  Send, 
+  Bot, 
+  User, 
+  FileText, 
+  Calendar,
+  AlertCircle,
+  X
+} from 'lucide-react';
 import Layout from '../components/common/Layout';
 import { useChat } from '../hooks/useChat';
 import { useAuth } from '../hooks/useAuth';
+import { useDocuments } from '../hooks/useDocuments';
+import { ChatMessage } from '../types/chat';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import PageLoader from '../components/common/PageLoader';
 import ContentSkeleton from '../components/common/ContentSkeleton';
 
+import { DocumentChatMessage } from '../components/chat/DocumentMessage';
+
+import DocumentUpload from '../components/documents/DocumentUpload';
+
+
 const ChatPage = () => {
   const { user } = useAuth();
   const { state, sendMessage } = useChat();
+  const { uploadDocument } = useDocuments();
   const [inputMessage, setInputMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const initialSuggestions = [
-    { id: '1', text: 'كيف يمكنني تقديم إجازة؟' },
-    { id: '2', text: 'ما هي سياسة العمل عن بعد؟' },
-    { id: '3', text: 'كيف يمكنني تحديث معلوماتي الشخصية؟' },
-    { id: '4', text: 'ما هي إجراءات تقييم الأداء؟' },
+  // Quick action suggestions
+  const quickActions = [
+    {
+      id: 'vacation',
+      text: 'كيف يمكنني تقديم إجازة؟',
+      icon: Calendar,
+    },
+    {
+      id: 'document',
+      text: 'مشاركة مستند',
+      icon: FileText,
+    },
+    // Add more quick actions as needed
   ];
 
   useEffect(() => {
@@ -51,9 +76,42 @@ const ChatPage = () => {
     }
   };
 
-  // Show full page loader for initial load
+  const handleDocumentUpload = async (file: File) => {
+    try {
+      const response = await uploadDocument(file);
+      await sendMessage(
+        'تم مشاركة مستند',
+        'document_upload',
+        { document: response.document }
+      );
+      setShowDocumentUpload(false);
+    } catch (error) {
+      // Error is handled by the document context
+    }
+  };
+
+  const renderMessage = (message: ChatMessage) => {
+    switch (message.type) {
+      case 'document_upload':
+      case 'document_shared':
+        return (
+          <DocumentChatMessage
+            message={message}
+            onPreview={(documentId) => window.open(`/api/documents/${documentId}/preview`, '_blank')}
+            onDownload={(documentId) => window.open(`/api/documents/${documentId}/download`)}
+          />
+        );
+      default:
+        return <div className="whitespace-pre-wrap">{message.content}</div>;
+    }
+  };
+
   if (state.isLoading && !state.messages.length) {
-    return <PageLoader message="جاري تحميل المحادثة..." />;
+    return (
+      <Layout>
+        <PageLoader message="جاري تحميل المحادثة..." />
+      </Layout>
+    );
   }
 
   return (
@@ -77,16 +135,11 @@ const ChatPage = () => {
               </motion.div>
             )}
 
-            {/* Loading Skeleton */}
-            {state.isLoading && state.messages.length > 0 && (
-              <ContentSkeleton type="message" count={3} />
-            )}
-
             {/* Message List */}
             <AnimatePresence>
               {state.messages.map((message) => (
                 <motion.div
-                  key={message.id}
+                  key={message.id}  // Use just message.id as the key
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
@@ -94,7 +147,8 @@ const ChatPage = () => {
                 >
                   <div className={`flex ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'} items-start gap-3 max-w-[80%]`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 
-                      ${message.type === 'user' ? 'bg-primary-500' : 'bg-purple-500'}`}>
+                      ${message.type === 'user' ? 'bg-primary-500' : 'bg-purple-500'}`}
+                    >
                       {message.type === 'user' ? (
                         <User className="w-5 h-5 text-white" />
                       ) : (
@@ -107,7 +161,15 @@ const ChatPage = () => {
                           ? 'bg-primary-500 text-white' 
                           : 'bg-white border border-gray-200'
                       }`}>
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        {message.type === 'document_upload' || message.type === 'document_shared' ? (
+                          <DocumentChatMessage
+                            message={message}
+                            onPreview={(documentId) => window.open(`/api/documents/${documentId}/preview`, '_blank')}
+                            onDownload={(documentId) => window.open(`/api/documents/${documentId}/download`)}
+                          />
+                        ) : (
+                          <div className="whitespace-pre-wrap">{message.content}</div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-gray-500">
@@ -129,25 +191,57 @@ const ChatPage = () => {
               ))}
             </AnimatePresence>
 
-            {/* Scroll Anchor */}
             <div ref={messagesEndRef} />
           </div>
         </div>
 
-        {/* Suggestions */}
+        {/* Document Upload Area */}
+        <AnimatePresence>
+          {showDocumentUpload && (
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="bg-white border-t"
+            >
+              <div className="max-w-3xl mx-auto p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-medium">مشاركة مستند</h3>
+                  <button 
+                    onClick={() => setShowDocumentUpload(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <DocumentUpload onUpload={handleDocumentUpload} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Quick Actions */}
         {state.messages.length === 0 && (
           <div className="bg-white border-t">
             <div className="max-w-3xl mx-auto px-4 py-4">
               <div className="flex flex-wrap gap-2">
-                {initialSuggestions.map((suggestion) => (
+                {quickActions.map((action) => (
                   <motion.button
-                    key={suggestion.id}
+                    key={action.id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => handleSendMessage(suggestion.text)}
-                    className="px-4 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm transition-colors"
+                    onClick={() => {
+                      if (action.id === 'document') {
+                        setShowDocumentUpload(true);
+                      } else {
+                        handleSendMessage(action.text);
+                      }
+                    }}
+                    className="px-4 py-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 
+                             text-sm transition-colors flex items-center gap-2"
                   >
-                    {suggestion.text}
+                    <action.icon className="w-4 h-4" />
+                    {action.text}
                   </motion.button>
                 ))}
               </div>
@@ -171,13 +265,20 @@ const ChatPage = () => {
                   disabled={sendingMessage}
                 />
               </div>
+              <button
+                onClick={() => setShowDocumentUpload(true)}
+                className="p-3 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
+                title="مشاركة مستند"
+              >
+                <FileText className="w-5 h-5" />
+              </button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSendMessage(inputMessage)}
                 disabled={!inputMessage.trim() || sendingMessage}
                 className="flex-shrink-0 p-3 rounded-full bg-primary-500 text-white hover:bg-primary-600 
-                          disabled:opacity-50 disabled:cursor-not-allowed"
+                         disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {sendingMessage ? (
                   <LoadingSpinner size="sm" color="white" />

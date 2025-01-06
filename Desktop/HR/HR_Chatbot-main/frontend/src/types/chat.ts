@@ -1,20 +1,24 @@
 // src/types/chat.ts
 
 import { VacationRequest, VacationBalance } from './vacation';
+import { DocumentMetadata } from './documents';
+
+
 
 export type MessageType = 
   | 'text'
   | 'vacation_request'
   | 'vacation_balance'
-  | 'vacation_status';
+  | 'document_upload'
+  | 'document_shared';
 
-export interface MessageBase {
-  id: string;
-  type: MessageType;
-  content: string;
-  timestamp: Date;
-  status: 'sending' | 'sent' | 'error';
-}
+  export interface MessageBase {
+    id: string;  // Ensure this exists
+    type: MessageType;
+    content: string;
+    timestamp: Date;
+    status: 'sending' | 'sent' | 'error';
+  }
 
 export interface TextMessage extends MessageBase {
   type: 'text';
@@ -54,3 +58,10 @@ export interface ChatResponse {
   metadata?: any;
   timestamp: string;
 }
+
+export interface DocumentMessage extends MessageBase {
+    type: 'document_upload' | 'document_shared';
+    metadata: {
+      document: DocumentMetadata;
+    };
+  }

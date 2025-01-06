@@ -27,7 +27,7 @@ class DocumentService {
   }
 
   /**
-   * Upload a new document
+   * Upload a document
    */
   async uploadDocument(file: File): Promise<DocumentUploadResponse> {
     try {
@@ -37,13 +37,33 @@ class DocumentService {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await apiService.post<DocumentUploadResponse>(
-        API_ENDPOINTS.UPLOAD_DOCUMENT,
+      // Use the raw axios instance to handle FormData
+      const instance = apiService.getInstance();
+      const response = await instance.post<DocumentUploadResponse>(
+        API_ENDPOINTS.DOCUMENTS,
         formData,
         {
           headers: {
             'Content-Type': 'multipart/form-data',
-          },
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Download a document
+   */
+  async downloadDocument(documentId: string): Promise<Blob> {
+    try {
+      const response = await apiService.getInstance().get(
+        `${API_ENDPOINTS.DOCUMENTS}/${documentId}/download`,
+        {
+          responseType: 'blob'
         }
       );
       return response.data;
@@ -67,9 +87,13 @@ class DocumentService {
    * Validate file before upload
    */
   private validateFile(file: File) {
-    const fileType = file.name.split('.').pop()?.toLowerCase() as AllowedFileType;
+    if (!file) {
+      throw new Error('لم يتم اختيار ملف');
+    }
+
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
     
-    if (!ALLOWED_FILE_TYPES.includes(fileType)) {
+    if (!fileExtension || !ALLOWED_FILE_TYPES.includes(fileExtension as AllowedFileType)) {
       throw new Error('نوع الملف غير مدعوم. الأنواع المدعومة هي: PDF، DOCX، DOC، TXT');
     }
 
@@ -82,8 +106,41 @@ class DocumentService {
    * Handle service errors
    */
   private handleError(error: any): Error {
-    const message = error.message || 'حدث خطأ في معالجة الملف';
-    return new Error(message);
+    console.error('Document service error:', error);
+
+    if (error.response) {
+      // Handle server errors
+      const data = error.response.data;
+      const message = data.message || data.error || 'حدث خطأ في معالجة الملف';
+      return new Error(message);
+    }
+
+    if (error.request) {
+      // Handle network errors
+      return new Error('فشل الاتصال بالخادم');
+    }
+
+    if (error instanceof Error) {
+      // Handle validation and other errors
+      return error;
+    }
+
+    // Handle unknown errors
+    return new Error('حدث خطأ غير متوقع');
+  }
+
+  /**
+   * Get download URL for a document
+   */
+  getDownloadUrl(documentId: string): string {
+    return `${apiService.getInstance().defaults.baseURL}${API_ENDPOINTS.DOCUMENTS}/${documentId}/download`;
+  }
+
+  /**
+   * Get preview URL for a document (PDF only)
+   */
+  getPreviewUrl(documentId: string): string {
+    return `${apiService.getInstance().defaults.baseURL}${API_ENDPOINTS.DOCUMENTS}/${documentId}/preview`;
   }
 }
 
