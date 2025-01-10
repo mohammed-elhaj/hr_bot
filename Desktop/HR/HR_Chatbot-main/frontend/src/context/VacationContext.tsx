@@ -64,7 +64,8 @@ interface VacationContextType {
   clearError: () => void;
 }
 
-const VacationContext = createContext<VacationContextType | undefined>(undefined);
+// Correct: Named export
+export const VacationContext = createContext<VacationContextType | undefined>(undefined);
 
 export const VacationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(vacationReducer, initialState);
@@ -101,10 +102,15 @@ export const VacationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const submitRequest = async (request: CreateVacationRequestPayload) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
+      // add this line to check if the backend is reciving a valid employee_id
+      console.log('Submitting request:', request); 
       const response = await vacationService.submitRequest(request);
+      // add this line to check the response from the backend
+      console.log('Vacation request response:', response); 
       dispatch({ type: 'ADD_REQUEST', payload: response.data });
       await fetchBalance(); // Refresh balance after successful request
     } catch (error) {
+      console.error('Error submitting vacation request:', error);
       dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'حدث خطأ في تقديم طلب الإجازة' });
       throw error;
     } finally {
@@ -146,12 +152,4 @@ export const VacationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 };
 
-export const useVacation = () => {
-  const context = useContext(VacationContext);
-  if (context === undefined) {
-    throw new Error('useVacation must be used within a VacationProvider');
-  }
-  return context;
-};
-
-export default VacationContext;
+// No default export

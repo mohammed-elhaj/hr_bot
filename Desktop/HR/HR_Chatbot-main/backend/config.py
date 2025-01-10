@@ -9,6 +9,7 @@ load_dotenv()
 
 # API Keys
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Base Paths
 BASE_DIR = Path(__file__).parent

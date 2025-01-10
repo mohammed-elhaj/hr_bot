@@ -7,6 +7,7 @@ interface DocumentState {
   documents: DocumentMetadata[];
   isLoading: boolean;
   error: string | null;
+  status: 'idle' | 'loading' | 'failed';
 }
 
 type DocumentAction =
@@ -32,6 +33,8 @@ const initialState: DocumentState = {
   isLoading: false,
   error: null
 };
+
+
 
 const documentReducer = (state: DocumentState, action: DocumentAction): DocumentState => {
   switch (action.type) {
@@ -72,19 +75,22 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const uploadDocument = useCallback(async (file: File) => {
-    //dispatch({ type: 'SET_LOADING', payload: true }); //Loading handled by the component
+    dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const response = await documentService.uploadDocument(file);
-      dispatch({ type: 'ADD_DOCUMENT', payload: response.document });
+      dispatch({
+        type: 'ADD_DOCUMENT',
+        payload: { ...response.document, status: 'success' } // Assuming backend sets the status
+      });
       return response;
     } catch (error) {
       dispatch({
         type: 'SET_ERROR',
         payload: error instanceof Error ? error.message : 'حدث خطأ في رفع المستند'
       });
-      throw error; // Re-throw the error after setting it to the state
+      throw error;
     } finally {
-      //dispatch({ type: 'SET_LOADING', payload: false }); //Loading handled by the component
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
 
@@ -122,11 +128,3 @@ export const DocumentProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     </DocumentContext.Provider>
   );
 };
-
-export const useDocuments = () => {
-    const context = useContext(DocumentContext);
-    if (!context) {
-      throw new Error('useDocuments must be used within a DocumentProvider');
-    }
-    return context;
-  };

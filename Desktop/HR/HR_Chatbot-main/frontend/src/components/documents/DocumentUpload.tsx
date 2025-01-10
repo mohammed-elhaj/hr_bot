@@ -57,20 +57,32 @@ export const DocumentUpload: React.FC = () => {
 
     setIsUploading(true);
     setUploadError(null);
+    setUploadSuccess(false); // Reset success message
 
     try {
       await uploadDocument(selectedFile);
-      setUploadSuccess(true);
-      setSelectedFile(null);
+      setUploadSuccess(true); 
+      setSelectedFile(null); // Clear the selected file
       if (fileInputRef.current) {
-        fileInputRef.current.value = ''; 
+        fileInputRef.current.value = ''; // Reset file input
       }
     } catch (error: any) {
-      setUploadError(error.message || 'حدث خطأ في رفع الملف');
+      let errorMessage = 'حدث خطأ في رفع الملف'; // Default error message
+
+      // Check for specific error messages from the backend
+      if (error.message.includes('نوع الملف غير مسموح به')) {
+        errorMessage = 'نوع الملف غير مسموح به. الأنواع المدعومة هي: PDF، DOCX، DOC، TXT';
+      } else if (error.message.includes('حجم الملف كبير جداً')) {
+        errorMessage = 'حجم الملف يتجاوز الحد المسموح به (10 ميجابايت)';
+      } else if (error.message.includes('لم يتم توفير ملف') || error.message.includes('لم يتم اختيار ملف')){
+        errorMessage = 'الرجاء اختيار ملف صحيح';
+      }
+
+      setUploadError(errorMessage);
     } finally {
       setIsUploading(false);
     }
-  };
+};
 
   const handleReset = () => {
     setSelectedFile(null);

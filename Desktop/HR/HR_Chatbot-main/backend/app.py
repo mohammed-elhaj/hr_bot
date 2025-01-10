@@ -8,16 +8,21 @@ import pandas as pd
 from dotenv import load_dotenv
 from datetime import datetime
 import json
+from tools.support_ticket_tool import SupportTicketTool
+
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Configuration
+# Configurationag
 UPLOAD_FOLDER = 'data/documents'
 ALLOWED_EXTENSIONS = {'pdf', 'docx', 'doc', 'txt'}
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Ensure upload directory exists
@@ -26,14 +31,11 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # Initialize HR Agent
 agent = HRAgent(
     google_api_key=os.getenv('GOOGLE_API_KEY'),
+    openai_api_key=os.getenv('OPENAI_API_KEY'),
     vacations_file='data/vacations.csv',
     tickets_file='data/tickets.csv'
 )
 
-def allowed_file(filename):
-    """Check if file extension is allowed"""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
            
 @app.route('/api/auth/login', methods=['POST'])
 def login():
@@ -141,34 +143,65 @@ def chat():
             'message': str(e)
         }), 500
 
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 @app.route('/api/admin/upload', methods=['POST'])
 def upload_document():
     """Handle document uploads"""
     try:
         if 'file' not in request.files:
-            return jsonify({'error': 'No file provided'}), 400
-            
+            return jsonify({'error': 'لم يتم توفير ملف', 'message': 'الرجاء إرسال ملف كجزء من الطلب'}), 400
+
         file = request.files['file']
+        file_type = request.form.get('fileType')  # Get file type from form data
+
         if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
-            
+            return jsonify({'error': 'لم يتم اختيار ملف', 'message': 'الرجاء اختيار ملف للرفع'}), 400
+
         if not allowed_file(file.filename):
-            return jsonify({'error': 'File type not allowed'}), 400
-            
+            return jsonify({'error': 'نوع الملف غير مسموح به', 'message': 'الأنواع المسموح بها هي: PDF، DOCX، DOC، TXT'}), 400
+
+        # Check file size
+        file.seek(0, os.SEEK_END)  # Go to the end of the file
+        file_length = file.tell()  # Get the file size
+        file.seek(0)  # Rewind to the beginning
+        if file_length > app.config['MAX_CONTENT_LENGTH']:
+            return jsonify({'error': 'حجم الملف كبير جداً', 'message': f'الحد الأقصى لحجم الملف هو {app.config["MAX_CONTENT_LENGTH"] / (1024 * 1024)} ميجابايت'}), 400
+
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        
+
         # Save the file
         file.save(filepath)
         
+        # Get the timestamp when the file was uploaded
+        uploaded_at = datetime.now().isoformat()
+
         # Process the document with RAG system
         agent.add_document(filepath)
-        
+
+        # Prepare document metadata
+        document_metadata = {
+            'id': filename,  # Using filename as a temporary ID; you might want to generate a unique ID
+            'title': filename,
+            'fileType': file_type,  # Use the file type from form data
+            'size': file_length,
+            'uploadedBy': 'user_id',  # Replace with actual user ID if you have authentication
+            'uploadedAt': uploaded_at,
+            'status': 'processing',  # You can update this status after RAG processing
+            'lastModified': uploaded_at
+        }
+
         return jsonify({
-            'message': 'Document uploaded successfully',
-            'filename': filename
-        })
-        
+            'message': 'تم رفع المستند بنجاح',
+            'filename': filename,
+            'document': document_metadata,
+            'status':'success'
+        }), 200
+
     except Exception as e:
         print(f"Error in upload endpoint: {str(e)}")
         return jsonify({
@@ -236,6 +269,26 @@ def get_vacation_balance(employee_id):
             'error': 'Internal server error',
             'message': str(e)
         }), 500
+        
+@app.route('/api/employee/vacation-requests/<employee_id>', methods=['GET'])
+def get_vacation_requests(employee_id):
+    """Get list of vacation requests for an employee"""
+    try:
+        requests = agent.get_employee_tickets(employee_id)  # Assuming you have a method like this in your agent
+        if requests["status"] == "success":
+            return jsonify({
+                'status': 'success',
+                'data': requests["tickets"] # Assuming your agent returns data in this format
+            })
+        else:
+            return jsonify({'error': requests["error"], 'status': 'error'}), 500
+
+    except Exception as e:
+        print(f"Error getting vacation requests: {str(e)}")
+        return jsonify({
+            'error': 'Internal server error',
+            'message': str(e)
+        }), 500
 
 @app.route('/api/employee/vacation-request', methods=['POST'])
 def submit_vacation_request():
@@ -272,10 +325,11 @@ if __name__ == '__main__':
     try:
         for filename in os.listdir(app.config['UPLOAD_FOLDER']):
             if allowed_file(filename):
+                print(f"Processing file: {filename}")
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 agent.add_document(filepath)
         print("Initial documents loaded")
     except Exception as e:
         print(f"Error loading initial documents: {str(e)}")
     
-    app.run(debug=True, port=5000)
+    app.run( port=5000)

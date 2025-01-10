@@ -22,7 +22,7 @@ class VacationService {
       );
       return response.data;
     } catch (error) {
-      throw this.handleError(error);
+      throw new Error(error instanceof Error ? error.message : 'حدث خطأ في جلب رصيد الإجازات');
     }
   }
 
@@ -37,7 +37,8 @@ class VacationService {
       );
       return response.data;
     } catch (error) {
-      throw this.handleError(error);
+        console.log('submitRequest error:', error); // added for debugging
+      throw new Error(error instanceof Error ? error.message : 'حدث خطأ في تقديم طلب الإجازة');
     }
   }
 
@@ -47,11 +48,11 @@ class VacationService {
   async getRequests(employeeId: string): Promise<VacationRequestListResponse> {
     try {
       const response = await apiService.get<VacationRequestListResponse>(
-        `${API_ENDPOINTS.VACATION_REQUEST}?employee_id=${employeeId}`
+        `${API_ENDPOINTS.VACATION_REQUEST}s/${employeeId}`
       );
       return response.data;
     } catch (error) {
-      throw this.handleError(error);
+      throw new Error(error instanceof Error ? error.message : 'حدث خطأ في جلب طلبات الإجازة');
     }
   }
 
@@ -65,16 +66,8 @@ class VacationService {
       );
       return response.data;
     } catch (error) {
-      throw this.handleError(error);
+      throw new Error(error instanceof Error ? error.message : 'حدث خطأ في إلغاء طلب الإجازة');
     }
-  }
-
-  /**
-   * Handle service errors
-   */
-  private handleError(error: any): Error {
-    const message = error.message || 'حدث خطأ في معالجة طلب الإجازة';
-    return new Error(message);
   }
 }
 

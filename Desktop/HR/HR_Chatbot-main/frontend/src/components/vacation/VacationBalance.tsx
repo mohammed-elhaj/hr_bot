@@ -1,19 +1,20 @@
 // src/components/vacation/VacationBalance.tsx
-import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Calendar, 
-  Clock, 
-  RefreshCcw, 
+import React, { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Calendar,
+  Clock,
+  RefreshCcw,
   AlertCircle,
   CheckCircle,
   XCircle,
-  Clock3
-} from 'lucide-react';
-import { useVacation } from '../../hooks/useVacation';
-import { useAuth } from '../../hooks/useAuth';
-import { VacationRequest } from '../../types/vacation';
-import { formatDate } from '../../utils/data';
+  Clock3,
+} from "lucide-react";
+import { useVacation } from "../../hooks/useVacation";
+import { useAuth } from "../../hooks/useAuth";
+import { VacationRequest } from "../../types/vacation";
+import { formatDate } from "../../utils/data";
+import ContentSkeleton from "../common/ContentSkeleton";
 
 export const VacationBalance: React.FC = () => {
   const { user } = useAuth();
@@ -26,35 +27,37 @@ export const VacationBalance: React.FC = () => {
     }
   }, [user, fetchBalance, fetchRequests]);
 
-  const renderStatusBadge = (status: VacationRequest['status']) => {
+  const renderStatusBadge = (status: VacationRequest["status"]) => {
     const statusConfig = {
       pending: {
         icon: Clock3,
-        class: 'bg-yellow-100 text-yellow-800',
-        text: 'قيد المراجعة'
+        class: "bg-yellow-100 text-yellow-800",
+        text: "قيد المراجعة",
       },
       approved: {
         icon: CheckCircle,
-        class: 'bg-green-100 text-green-800',
-        text: 'تمت الموافقة'
+        class: "bg-green-100 text-green-800",
+        text: "تمت الموافقة",
       },
       rejected: {
         icon: XCircle,
-        class: 'bg-red-100 text-red-800',
-        text: 'مرفوض'
+        class: "bg-red-100 text-red-800",
+        text: "مرفوض",
       },
       cancelled: {
         icon: XCircle,
-        class: 'bg-gray-100 text-gray-800',
-        text: 'ملغي'
-      }
+        class: "bg-gray-100 text-gray-800",
+        text: "ملغي",
+      },
     };
 
     const config = statusConfig[status];
     const Icon = config.icon;
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-medium ${config.class}`}>
+      <span
+        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-sm font-medium ${config.class}`}
+      >
         <Icon className="w-4 h-4" />
         {config.text}
       </span>
@@ -62,15 +65,7 @@ export const VacationBalance: React.FC = () => {
   };
 
   if (state.isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full"
-        />
-      </div>
-    );
+    return <ContentSkeleton type="card" />;
   }
 
   return (
@@ -96,28 +91,36 @@ export const VacationBalance: React.FC = () => {
           {state.balance ? (
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-primary-50 rounded-lg p-4">
-                <div className="text-primary-600 text-sm font-medium">الرصيد السنوي</div>
+                <div className="text-primary-600 text-sm font-medium">
+                  الرصيد السنوي
+                </div>
                 <div className="mt-2 text-3xl font-bold text-primary-700">
                   {state.balance.annual_balance} يوم
                 </div>
               </div>
 
               <div className="bg-purple-50 rounded-lg p-4">
-                <div className="text-purple-600 text-sm font-medium">الإجازات المستخدمة</div>
+                <div className="text-purple-600 text-sm font-medium">
+                  الإجازات المستخدمة
+                </div>
                 <div className="mt-2 text-3xl font-bold text-purple-700">
                   {state.balance.used_days} يوم
                 </div>
               </div>
 
               <div className="bg-green-50 rounded-lg p-4">
-                <div className="text-green-600 text-sm font-medium">الرصيد المتبقي</div>
+                <div className="text-green-600 text-sm font-medium">
+                  الرصيد المتبقي
+                </div>
                 <div className="mt-2 text-3xl font-bold text-green-700">
                   {state.balance.remaining_balance} يوم
                 </div>
               </div>
             </div>
           ) : (
-            <div className="mt-4 text-gray-500">لا يوجد معلومات متوفرة عن الرصيد</div>
+            <div className="mt-4 text-gray-500">
+              لا يوجد معلومات متوفرة عن الرصيد
+            </div>
           )}
 
           {state.balance && (
@@ -134,7 +137,12 @@ export const VacationBalance: React.FC = () => {
             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${(state.balance.used_days / state.balance.annual_balance) * 100}%` }}
+                animate={{
+                  width: `${
+                    (state.balance.used_days / state.balance.annual_balance) *
+                    100
+                  }%`,
+                }}
                 transition={{ duration: 1, ease: "easeOut" }}
                 className="h-full bg-primary-500"
               />
@@ -150,35 +158,53 @@ export const VacationBalance: React.FC = () => {
         transition={{ delay: 0.2 }}
         className="bg-white rounded-xl shadow-lg p-6"
       >
-        <h2 className="text-xl font-bold text-gray-900 mb-6">طلبات الإجازة السابقة</h2>
-        
-        {state.requests.length > 0 ? (
+        <h2 className="text-xl font-bold text-gray-900 mb-6">
+          طلبات الإجازة السابقة
+        </h2>
+
+        {/* Use isLoading state to show skeleton or requests */}
+        {state.isLoading ? (
+          <ContentSkeleton type="list" count={3} /> // Adjust count as needed
+        ) : state.requests && state.requests.length > 0 ? (
           <div className="space-y-4">
             {state.requests.map((request) => (
-              <motion.div
-                key={request.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-medium text-gray-900 mb-1">
-                      {formatDate(request.start_date)} - {formatDate(request.end_date)}
+              // Add a check for request and request.id
+              request && request.id && (
+                <motion.div
+                  key={request.id} // Use the id as the key
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium text-gray-900 mb-1">
+                        {request?.start_date
+                          ? formatDate(request.start_date)
+                          : ""}{" "}
+                        -{" "}
+                        {request?.end_date ? formatDate(request.end_date) : ""}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        نوع الإجازة:{" "}
+                        {request?.request_type
+                          ? request.request_type === "annual"
+                            ? "سنوية"
+                            : request.request_type === "sick"
+                            ? "مرضية"
+                            : "طارئة"
+                          : ""}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      نوع الإجازة: {request.request_type === 'annual' ? 'سنوية' : 
-                                   request.request_type === 'sick' ? 'مرضية' : 'طارئة'}
+                    {request?.status && renderStatusBadge(request.status)}
+                  </div>
+                  {request?.notes && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      {request.notes}
                     </div>
-                  </div>
-                  {renderStatusBadge(request.status)}
-                </div>
-                {request.notes && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    {request.notes}
-                  </div>
-                )}
-              </motion.div>
+                  )}
+                </motion.div>
+              )
             ))}
           </div>
         ) : (
@@ -193,7 +219,7 @@ export const VacationBalance: React.FC = () => {
         {state.error && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="bg-red-50 text-red-600 p-4 rounded-lg flex items-center gap-2"
           >

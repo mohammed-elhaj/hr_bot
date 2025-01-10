@@ -6,10 +6,11 @@ from rag_system import HRRAGSystem
 class RAGTool:
     """Tool for handling HR document queries using RAG system"""
     
-    def __init__(self, google_api_key: str):
+    def __init__(self, google_api_key: str, openai_api_key: str):
         """Initialize RAG Tool with configurations."""
-        self.api_key = google_api_key
-        self.rag_system = HRRAGSystem(google_api_key)
+        self.google_api_key = google_api_key
+        self.openai_api_key = openai_api_key
+        self.rag_system = HRRAGSystem(google_api_key, openai_api_key)
         self.active_docs = []
 
     def query(self, question: str) -> str:

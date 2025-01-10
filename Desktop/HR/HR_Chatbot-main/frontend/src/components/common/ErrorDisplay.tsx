@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, RefreshCcw, Home } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface ErrorDisplayProps {
   error: Error | null;
@@ -12,6 +12,7 @@ interface ErrorDisplayProps {
 
 const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onReset, fullPage = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleReset = () => {
     onReset?.();
@@ -19,12 +20,11 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onReset, fullPage = 
 
   const getErrorMessage = (error: Error | null): string => {
     if (!error) return 'حدث خطأ غير متوقع';
-    
-    // Add specific error message handling here
+
     if (error.message.includes('Network Error')) {
       return 'تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت الخاص بك.';
     }
-    
+
     if (error.message.includes('401')) {
       return 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.';
     }
@@ -61,15 +61,18 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ error, onReset, fullPage = 
           إعادة المحاولة
         </motion.button>
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => navigate('/')}
-          className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors gap-2"
-        >
-          <Home className="w-4 h-4" />
-          العودة للرئيسية
-        </motion.button>
+        {/* Only show "Home" button if within Router context */}
+        {location && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate('/')}
+            className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors gap-2"
+          >
+            <Home className="w-4 h-4" />
+            العودة للرئيسية
+          </motion.button>
+        )}
       </div>
     </motion.div>
   );

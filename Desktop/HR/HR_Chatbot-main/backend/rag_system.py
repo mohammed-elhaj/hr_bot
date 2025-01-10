@@ -11,10 +11,15 @@ from langchain_community.vectorstores import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import logging
 from pathlib import Path
+from langchain.document_loaders import PyPDFLoader
+from langchain_openai import OpenAIEmbeddings , ChatOpenAI  # Import OpenAIEmbeddings
+
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class DocumentMetadata:
@@ -40,28 +45,22 @@ class ProcessedDocument:
 class DocumentProcessor:
     """Handles document processing and embedding"""
     
-    def __init__(self, api_key: str, base_path: str = "./data"):
-        """
-        Initialize the document processor.
-        
-        Args:
-            api_key: Google API key for Gemini
-            base_path: Base path for storing documents and collections
-        """
-        self.api_key = os.getenv("GOOGLE_API_KEY", api_key)
+    def __init__(self, google_api_key: str, openai_api_key: str, base_path: str = "./data"):
+        """Initialize the document processor."""
+        self.google_api_key = google_api_key
+        self.openai_api_key = openai_api_key
         self.base_path = base_path
-        genai.configure(api_key=api_key)
         
-        # Initialize embeddings
-        self.embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001",
-            google_api_key=api_key
+        # Initialize OpenAI embeddings
+        self.embeddings = OpenAIEmbeddings(
+            api_key=self.openai_api_key,
+            model="text-embedding-ada-002"
         )
         
         # Configure text splitter for Arabic and English
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,
-            chunk_overlap=50,
+            chunk_size=2048,
+            chunk_overlap=200,
             length_function=len,
             separators=["\n\n", "\n", ".", "!", "?", "؟", "،", " "]
         )
@@ -134,14 +133,11 @@ class DocumentProcessor:
     def _extract_pdf_text(self, file_path: str) -> str:
         """Extract text from PDF files."""
         try:
-            import pypdf
-            
-            with open(file_path, 'rb') as file:
-                pdf = pypdf.PdfReader(file)
-                text = ""
-                for page in pdf.pages:
-                    text += page.extract_text() + "\n\n"
-                return text
+            from langchain_community.document_loaders import PyPDFLoader
+            loader = PyPDFLoader(file_path) # or parser="pypdfium"
+            documents = loader.load()
+            text = "\n\n".join([doc.page_content for doc in documents])
+            return text
                 
         except Exception as e:
             raise Exception(f"Error extracting PDF text: {str(e)}")
@@ -217,25 +213,20 @@ class DocumentProcessor:
 
 class HRRAGSystem:
     """Main RAG system for HR document queries"""
-    
-    def __init__(self, api_key: str, base_path: str = "./data"):
-        """
-        Initialize the HR RAG system.
-        
-        Args:
-            api_key: Google API key for Gemini
-            base_path: Base path for data storage
-        """
-        self.api_key = api_key
+    def __init__(self, google_api_key: str, openai_api_key: str, base_path: str = "./data"):
+        """Initialize the HR RAG system."""
+        self.google_api_key = google_api_key
+        self.openai_api_key = openai_api_key
         self.base_path = Path(base_path)
-        self.doc_processor = DocumentProcessor(api_key, base_path)
         
-        # Initialize LLM
+        # Initialize document processor with both API keys
+        self.doc_processor = DocumentProcessor(google_api_key, openai_api_key, base_path)
+        
+        # Initialize Gemini LLM
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
-            google_api_key=api_key,
+            model="gemini-2.0-flash-exp",
             temperature=0.3,
-            convert_system_message_to_human=True
+            google_api_key=self.google_api_key
         )
         
         # Keep track of active collections
@@ -246,6 +237,7 @@ class HRRAGSystem:
 
     def _load_existing_collections(self):
         """Load existing collections from chroma_db directory."""
+        logger.info("Loading existing collections...")
         try:
             chroma_path = self.base_path / "chroma_db"
             if chroma_path.exists():
@@ -257,12 +249,15 @@ class HRRAGSystem:
                                 embedding_function=self.doc_processor.embeddings
                             )
                             self.active_collections[collection_dir.name] = vectorstore
-                            logger.info(f"Loaded existing collection: {collection_dir.name}")
+                            # Log the number of documents in the collection
+                            num_docs = vectorstore._collection.count()
+                            logger.info(f"Loaded collection: {collection_dir.name} with {num_docs} documents")
                         except Exception as e:
                             logger.error(f"Error loading collection {collection_dir.name}: {str(e)}")
-        
+
         except Exception as e:
             logger.error(f"Error loading existing collections: {str(e)}")
+
 
     def process_document(self, file_path: str) -> str:
         """
@@ -279,14 +274,26 @@ class HRRAGSystem:
             processed_doc = self.doc_processor.process_document(file_path)
             
             # Create embeddings
+            logger.info(
+                f"Creating embeddings for document: {processed_doc.metadata.collection_id}"
+            )
             vectorstore = self.doc_processor.create_embeddings(processed_doc)
-            
+            # Log the number of chunks embedded:
+            logger.info(f"Created embeddings for {len(processed_doc.chunks)} chunks.")
+
             # Add to active collections
-            self.active_collections[processed_doc.metadata.collection_id] = vectorstore
-            
+            self.active_collections[
+                processed_doc.metadata.collection_id
+            ] = vectorstore
+
             # Update metadata status
-            processed_doc.metadata.status = 'active'
-            processed_doc.embedding_status = 'completed'
+            processed_doc.metadata.status = "active"
+            processed_doc.embedding_status = "completed"
+
+            # log the active collections
+            logger.info(
+                f"Active collections: {', '.join(self.active_collections.keys())}"
+            )
             
             return processed_doc.metadata.collection_id
             
@@ -324,11 +331,11 @@ class HRRAGSystem:
             # Combine results from all collections
             all_docs = []
             for vectorstore in collections_to_query:
-                docs = vectorstore.similarity_search(question, k=2)
+                docs = vectorstore.similarity_search(question, k=7)
                 all_docs.extend(docs)
 
             # Sort by relevance (assumed from order) and take top results
-            context = "\n".join(doc.page_content for doc in all_docs[:3])
+            context = "\n".join(doc.page_content for doc in all_docs[:10])
 
             # Generate response using LLM
             prompt = f"""أنت مساعد متخصص في الموارد البشرية. استخدم المعلومات التالية للإجابة على السؤال.

@@ -19,6 +19,11 @@ export const formatTime = (date: string | Date): string => {
 export const calculateDaysBetween = (startDate: string, endDate: string): number => {
   const start = new Date(startDate);
   const end = new Date(endDate);
+
+  // Ignore time and set start date to beginning of the day
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
   const diffTime = Math.abs(end.getTime() - start.getTime());
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };

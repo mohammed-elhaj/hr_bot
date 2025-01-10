@@ -9,18 +9,22 @@ import LoginPage from './pages/LoginPage';
 import ChatPage from './pages/ChatPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import DocumentPage from './pages/DocumentPage';
+import VacationPage from './pages/VacationPage';
 
 const App = () => {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <ChatProvider>
-          <VacationProvider>
-            <DocumentProvider>
-              <Router>
+    <Router>
+      <ErrorBoundary>
+        <AuthProvider>
+          <ChatProvider>
+            <VacationProvider>
+              <DocumentProvider>
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/login" element={<LoginPage />} />
+                  <Route path="/documents" element={<DocumentPage />} />
+                  <Route path="/vacation" element={<VacationPage />} />
                   <Route
                     path="/chat"
                     element={
@@ -32,12 +36,12 @@ const App = () => {
                     }
                   />
                 </Routes>
-              </Router>
-            </DocumentProvider>
-          </VacationProvider>
-        </ChatProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+              </DocumentProvider>
+            </VacationProvider>
+          </ChatProvider>
+        </AuthProvider>
+      </ErrorBoundary>
+    </Router>
   );
 };
 
