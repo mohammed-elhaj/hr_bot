@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Menu, X, User, LogOut } from 'lucide-react'; // Import LogOut icon
+import { 
+  Menu, 
+  X, 
+  User, 
+  LogOut,
+  MessageSquare, // Added for chat button
+  Bot // Added for chat icon
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { user, logout } = useAuth(); // Get user and logout from useAuth
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.role === 'admin';
+  const isOnChatPage = location.pathname === '/chat';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +27,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const navigateToChat = () => {
+    if (!isOnChatPage) {
+      navigate('/chat');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -31,6 +45,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
+            {/* Logo */}
             <motion.div
               className="flex-shrink-0"
               whileHover={{ scale: 1.05 }}
@@ -59,7 +74,21 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   التذاكر
                 </NavLink>
               )}
-              {/* Conditional rendering for login/logout */}
+              
+              {/* Chat Button */}
+              {user && !isOnChatPage && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={navigateToChat}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-full hover:bg-primary-600 transition-colors shadow-md hover:shadow-lg"
+                >
+                  <Bot className="w-5 h-5" />
+                  <span>المساعد الافتراضي</span>
+                </motion.button>
+              )}
+
+              {/* Login/Logout Button */}
               {user ? (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -67,7 +96,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                   onClick={logout}
                   className="px-6 py-3 rounded-full border-2 border-primary-500 text-primary-600 font-medium hover:bg-primary-50 transition-colors flex items-center gap-2"
                 >
-                  <LogOut className="w-5 h-5" /> {/* LogOut icon */}
+                  <LogOut className="w-5 h-5" />
                   تسجيل الخروج
                 </motion.button>
               ) : (
@@ -79,7 +108,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     to="/login"
                     className="px-6 py-3 rounded-full bg-gradient-to-r from-primary-500 to-purple-500 text-white font-medium hover:shadow-lg transition-shadow"
                   >
-                    <User className="w-5 h-5 inline-block mr-2" /> {/* User icon */}
+                    <User className="w-5 h-5 inline-block mr-2" />
                     تسجيل الدخول
                   </Link>
                 </motion.div>
@@ -123,22 +152,33 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 التذاكر
               </MobileNavLink>
             )}
+            
+            {/* Mobile Chat Button */}
+            {user && !isOnChatPage && (
+              <button
+                onClick={navigateToChat}
+                className="w-full flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+              >
+                <Bot className="w-5 h-5" />
+                المساعد الافتراضي
+              </button>
+            )}
 
-            {/* Conditional rendering for login/logout */}
+            {/* Mobile Login/Logout Button */}
             {user ? (
               <button
                 onClick={logout}
-                className="block w-full text-center px-4 py-2 rounded-lg border-2 border-primary-500 text-primary-600 font-medium"
+                className="w-full flex items-center gap-2 px-4 py-2 border-2 border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
               >
-                <LogOut className="w-5 h-5 inline-block mr-2" /> {/* LogOut icon */}
+                <LogOut className="w-5 h-5" />
                 تسجيل الخروج
               </button>
             ) : (
               <Link
                 to="/login"
-                className="block w-full text-center px-4 py-2 rounded-lg bg-gradient-to-r from-primary-500 to-purple-500 text-white font-medium"
+                className="block w-full text-center px-4 py-2 bg-gradient-to-r from-primary-500 to-purple-500 text-white rounded-lg"
               >
-                <User className="w-5 h-5 inline-block mr-2" /> {/* User icon */}
+                <User className="w-5 h-5 inline-block mr-2" />
                 تسجيل الدخول
               </Link>
             )}
@@ -148,8 +188,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
       <main className="pt-20">{children}</main>
 
-      <footer className="bg-gradient-to-r from-gray-900 to-gray-800 text-white">
-                {/* footer code here  */}
+      <footer className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white">
+        {/* footer code here */}
       </footer>
     </div>
   );

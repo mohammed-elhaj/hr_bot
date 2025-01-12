@@ -333,11 +333,11 @@ class HRRAGSystem:
             # Combine results from all collections
             all_docs = []
             for vectorstore in collections_to_query:
-                docs = vectorstore.similarity_search(question, k=7)
+                docs = vectorstore.similarity_search(question, k=10)
                 all_docs.extend(docs)
 
             # Sort by relevance (assumed from order) and take top results
-            context = "\n".join(doc.page_content for doc in all_docs[:10])
+            context = "\n".join(doc.page_content for doc in all_docs[:15])
 
             # Generate response using LLM
             prompt = f"""أنت مساعد متخصص في الموارد البشرية. استخدم المعلومات التالية للإجابة على السؤال.
