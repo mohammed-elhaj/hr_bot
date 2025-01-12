@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from tools.support_ticket_tool import SupportTicketTool
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
+import config
 
 
 
@@ -88,6 +89,9 @@ class HRAgent:
             handle_parsing_errors=True,
             max_iterations=3
         )
+        
+        self.active_docs = [] # Initialize active_docs
+
 
         self.system_prompt = """أنت مساعد الموارد البشرية. مهمتك هي:
 
@@ -184,6 +188,124 @@ class HRAgent:
         except Exception as e:
             print(f"Error getting tickets: {str(e)}")
             return {"error": "Could not retrieve tickets"}
+        
+    def get_all_tickets(self):
+        """Reads and returns all tickets from the CSV file, handling NaN values."""
+        try:
+            df = pd.read_csv(self.ticket_tool.tickets_file)
+
+            # Replace NaN values with appropriate defaults
+            df = df.fillna({'description': '', 'manager_id': '', 'response_date': '', 'updated_at': ''})
+
+            tickets = df.to_dict('records')
+            return tickets
+        except Exception as e:
+            print(f"Error reading tickets: {str(e)}")
+            return []
+    
+    def _create_mapping(self, document_id: str, collection_id: str):
+        """Creates a new mapping entry in the CSV file."""
+        try:
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            new_mapping = pd.DataFrame([{
+                'document_id': document_id,
+                'collection_id': collection_id,
+                'created_at': timestamp
+            }])
+
+            if not os.path.exists(config.DOCUMENT_MAPPING_FILE):
+                new_mapping.to_csv(config.DOCUMENT_MAPPING_FILE, index=False)
+            else:
+                mapping_df = pd.read_csv(config.DOCUMENT_MAPPING_FILE)
+                mapping_df = pd.concat([mapping_df, new_mapping], ignore_index=True)
+                mapping_df.to_csv(config.DOCUMENT_MAPPING_FILE, index=False)
+
+        except Exception as e:
+            print(f"Error creating mapping: {str(e)}")
+
+    def _get_collection_id(self, document_id: str) -> str | None:
+        """Retrieves the collection_id for a given document_id."""
+        try:
+            if not os.path.exists(config.DOCUMENT_MAPPING_FILE):
+                return None
+
+            mapping_df = pd.read_csv(config.DOCUMENT_MAPPING_FILE)
+            mapping = mapping_df[mapping_df['document_id'] == document_id]
+
+            if not mapping.empty:
+                return mapping.iloc[0]['collection_id']
+            else:
+                return None
+
+        except Exception as e:
+            print(f"Error getting collection ID: {str(e)}")
+            return None
+
+    def _delete_mapping(self, document_id: str):
+        """Deletes a mapping entry from the CSV file."""
+        try:
+            if not os.path.exists(config.DOCUMENT_MAPPING_FILE):
+                return
+
+            mapping_df = pd.read_csv(config.DOCUMENT_MAPPING_FILE)
+            mapping_df = mapping_df[mapping_df['document_id'] != document_id]
+            mapping_df.to_csv(config.DOCUMENT_MAPPING_FILE, index=False)
+
+        except Exception as e:
+            print(f"Error deleting mapping: {str(e)}")
+
+    def add_document(self, filepath: str) -> bool:
+        """Add a new document to the RAG system."""
+        try:
+            collection_id = self.rag_tool.rag_system.process_document(filepath)
+            if collection_id:
+                document_id = os.path.basename(filepath)  # Use filename as document_id
+                self._create_mapping(document_id, collection_id)  # Create the mapping
+                self.active_docs.append(filepath)
+                return True
+            return False
+        except Exception as e:
+            print(f"Error adding document: {str(e)}")
+            return False
+
+    def delete_document_and_collection(self, document_id: str) -> bool:
+        """Deletes a document and its associated ChromaDB collection.
+
+        Args:
+            document_id: The ID of the document to delete (filename).
+
+        Returns:
+            True if successful, False otherwise.
+        """
+        try:
+            # 1. Get the collection_id from the mapping
+            collection_id = self._get_collection_id(document_id)
+            if collection_id is None:
+                print(f"No mapping found for document ID: {document_id}")
+                return False
+
+            # 2. Delete the ChromaDB collection
+            if self.rag_tool.rag_system.remove_collection(collection_id):
+                print(f"collection {collection_id} deleted successfully")
+
+            # 3. Delete the mapping
+            self._delete_mapping(document_id)
+            print(f"Mapping for document {document_id} deleted successfully.")
+
+            # 4. Delete the document file
+            document_path = os.path.join(self.rag_tool.rag_system.base_path, 'documents', document_id)
+            if os.path.exists(document_path):
+                os.remove(document_path)
+                print(f"Document file {document_path} deleted successfully.")
+            else:
+                print(f"Document file not found: {document_path}")
+
+            return True
+
+        except Exception as e:
+            print(f"Error deleting document and collection: {str(e)}")
+            return False
+    
 
 def main():
     load_dotenv()

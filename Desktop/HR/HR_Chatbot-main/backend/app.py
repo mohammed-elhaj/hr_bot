@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 import json
 from tools.support_ticket_tool import SupportTicketTool
+import shutil
 
 
 # Load environment variables
@@ -45,14 +46,19 @@ def login():
     
     # Simple mock users for MVP
     mock_users = {
-        'user1': {
-            'id': '1001',
-            'name': 'محمد احمد',
-            'role': 'employee',
-            'employee_id': '1001'
-        }
-        # Add more mock users as needed
+    'user1': {
+        'id': '1001',
+        'name': 'محمد احمد',
+        'role': 'employee',
+        'employee_id': '1001'
+    },
+    'admin': {
+        'id': '9001',
+        'name': 'Admin User',
+        'role': 'admin',
+        'employee_id': '9001'
     }
+                }
     
     if username in mock_users:
         return jsonify({
@@ -319,6 +325,64 @@ def submit_vacation_request():
             'error': 'Internal server error',
             'message': str(e)
         }), 500
+        
+@app.route('/api/admin/tickets', methods=['GET'])
+def admin_get_tickets():
+    """Endpoint to retrieve all tickets (for admin users)."""
+    try:
+        tickets = agent.get_all_tickets()
+        print("Raw tickets from CSV:", tickets)
+        
+        # Clean and process the tickets data
+        processed_tickets = []
+        for ticket in tickets:
+            # Convert 'nan' and NaN values to None/null
+            processed_ticket = {
+                'ticket_id': str(ticket.get('ticket_id', '')),
+                'employee_id': str(ticket.get('employee_id', '')),
+                'request_type': str(ticket.get('request_type')) if ticket.get('request_type') and ticket.get('request_type') != 'nan' else None,
+                'start_date': str(ticket.get('start_date')) if ticket.get('start_date') and ticket.get('start_date') != 'nan' else None,
+                'end_date': str(ticket.get('end_date')) if ticket.get('end_date') and ticket.get('end_date') != 'nan' else None,
+                'days_count': float(ticket.get('days_count')) if ticket.get('days_count') and not pd.isna(ticket.get('days_count')) else None,
+                'status': str(ticket.get('status', 'pending')),
+                'manager_id': str(ticket.get('manager_id')) if ticket.get('manager_id') and ticket.get('manager_id') != 'nan' else None,
+                'request_date': str(ticket.get('request_date')) if ticket.get('request_date') and ticket.get('request_date') != 'nan' else None,
+                'response_date': str(ticket.get('response_date')) if ticket.get('response_date') and ticket.get('response_date') != 'nan' else None,
+                'notes': str(ticket.get('notes')) if ticket.get('notes') and ticket.get('notes') != 'nan' else None,
+                'summary': str(ticket.get('summary')) if ticket.get('summary') and ticket.get('summary') != 'nan' else None,
+                'description': str(ticket.get('description')) if ticket.get('description') and ticket.get('description') != 'nan' else None,
+                'created_at': str(ticket.get('created_at')) if ticket.get('created_at') and ticket.get('created_at') != 'nan' else None,
+                'updated_at': str(ticket.get('updated_at')) if ticket.get('updated_at') and ticket.get('updated_at') != 'nan' else None
+            }
+            processed_tickets.append(processed_ticket)
+
+        return jsonify({
+            'tickets': processed_tickets,
+            'status': 'success'
+        })
+
+    except Exception as e:
+        print(f"Error getting tickets: {str(e)}")
+        return jsonify({
+            'error': 'Could not retrieve tickets',
+            'status': 'error'
+        }), 500
+    
+@app.route('/api/admin/documents/<document_id>', methods=['DELETE'])
+def delete_document(document_id):
+    """Endpoint to delete a document and its associated ChromaDB collection."""
+    try:
+        # In a real app, you'd verify the user's role here (admin).
+
+        # Use the document_id (filename) to delete the document and collection
+        if agent.delete_document_and_collection(document_id):
+            return jsonify({'message': 'Document and associated collection deleted', 'status': 'success'})
+        else:
+            return jsonify({'error': 'Could not delete document or collection', 'status': 'error'}), 500
+
+    except Exception as e:
+        print(f"Error deleting document: {str(e)}")
+        return jsonify({'error': 'Could not delete document', 'status': 'error'}), 500
 
 if __name__ == '__main__':
     # Load initial documents if any exist

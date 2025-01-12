@@ -48,3 +48,8 @@ class RAGTool:
         except Exception as e:
             print(f"Error updating active documents: {str(e)}")
             return False
+        
+    def reinitialize_rag_system(self):
+        """Reinitializes the RAG system."""
+        self.rag_system = HRRAGSystem(self.google_api_key, self.openai_api_key)
+        print("RAG system reinitialized.")

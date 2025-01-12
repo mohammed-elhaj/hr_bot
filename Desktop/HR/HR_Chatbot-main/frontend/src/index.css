@@ -18,3 +18,29 @@
     @apply bg-primary-600 text-white hover:bg-primary-700;
   }
 }
+
+.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.rtl select {
+  background-position: left 0.5rem center;
+  padding-right: 0.75rem;
+  padding-left: 2rem;
+}
+
+.rtl .select-wrapper {
+  position: relative;
+}
+
+.rtl .select-wrapper::after {
+  left: 0.75rem;
+  right: auto;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-bottom: 60px;
+  }
+}

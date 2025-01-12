@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import { Menu, X, User, LogOut } from 'lucide-react'; // Import LogOut icon
+import { useAuth } from '../../hooks/useAuth';
+
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, logout } = useAuth(); // Get user and logout from useAuth
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -47,20 +51,39 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               <NavLink href="/" isActive={location.pathname === '/'}>
                 الرئيسية
               </NavLink>
-              <NavLink href="/features" isActive={location.pathname === '/features'}>
-                المميزات
+              <NavLink href="/documents" isActive={location.pathname === '/documents'}>
+                المستندات
               </NavLink>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Link
-                  to="/login"
-                  className="px-6 py-3 rounded-full bg-gradient-to-r from-primary-500 to-purple-500 text-white font-medium hover:shadow-lg transition-shadow"
+              {isAdmin && (
+                <NavLink href="/tickets" isActive={location.pathname === '/tickets'}>
+                  التذاكر
+                </NavLink>
+              )}
+              {/* Conditional rendering for login/logout */}
+              {user ? (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={logout}
+                  className="px-6 py-3 rounded-full border-2 border-primary-500 text-primary-600 font-medium hover:bg-primary-50 transition-colors flex items-center gap-2"
                 >
-                  تسجيل الدخول
-                </Link>
-              </motion.div>
+                  <LogOut className="w-5 h-5" /> {/* LogOut icon */}
+                  تسجيل الخروج
+                </motion.button>
+              ) : (
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Link
+                    to="/login"
+                    className="px-6 py-3 rounded-full bg-gradient-to-r from-primary-500 to-purple-500 text-white font-medium hover:shadow-lg transition-shadow"
+                  >
+                    <User className="w-5 h-5 inline-block mr-2" /> {/* User icon */}
+                    تسجيل الدخول
+                  </Link>
+                </motion.div>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -92,15 +115,33 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             <MobileNavLink href="/" isActive={location.pathname === '/'}>
               الرئيسية
             </MobileNavLink>
-            <MobileNavLink href="/features" isActive={location.pathname === '/features'}>
-              المميزات
+            <MobileNavLink href="/documents" isActive={location.pathname === '/documents'}>
+              المستندات
             </MobileNavLink>
-            <Link
-              to="/login"
-              className="block w-full text-center px-4 py-2 rounded-lg bg-gradient-to-r from-primary-500 to-purple-500 text-white font-medium"
-            >
-              تسجيل الدخول
-            </Link>
+            {isAdmin && (
+              <MobileNavLink href="/tickets" isActive={location.pathname === '/tickets'}>
+                التذاكر
+              </MobileNavLink>
+            )}
+
+            {/* Conditional rendering for login/logout */}
+            {user ? (
+              <button
+                onClick={logout}
+                className="block w-full text-center px-4 py-2 rounded-lg border-2 border-primary-500 text-primary-600 font-medium"
+              >
+                <LogOut className="w-5 h-5 inline-block mr-2" /> {/* LogOut icon */}
+                تسجيل الخروج
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="block w-full text-center px-4 py-2 rounded-lg bg-gradient-to-r from-primary-500 to-purple-500 text-white font-medium"
+              >
+                <User className="w-5 h-5 inline-block mr-2" /> {/* User icon */}
+                تسجيل الدخول
+              </Link>
+            )}
           </div>
         </motion.div>
       </motion.nav>
@@ -108,40 +149,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <main className="pt-20">{children}</main>
 
       <footer className="bg-gradient-to-r from-gray-900 to-gray-800 text-white">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="text-xl font-bold mb-4">روبوت الموارد البشرية</h3>
-              <p className="text-gray-400">
-                حلول ذكية لإدارة الموارد البشرية في مؤسستك
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold mb-4">روابط سريعة</h3>
-              <ul className="space-y-2">
-                <li>
-                  <Link to="/" className="text-gray-400 hover:text-white">
-                    الرئيسية
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/features" className="text-gray-400 hover:text-white">
-                    المميزات
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold mb-4">تواصل معنا</h3>
-              <p className="text-gray-400">
-                البريد الإلكتروني: info@hrchatbot.com
-              </p>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
-            <p>جميع الحقوق محفوظة © {new Date().getFullYear()}</p>
-          </div>
-        </div>
+                {/* footer code here  */}
       </footer>
     </div>
   );

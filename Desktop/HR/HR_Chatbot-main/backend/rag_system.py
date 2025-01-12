@@ -200,6 +200,8 @@ class DocumentProcessor:
                 persist_directory=processed_doc.collection_path
             )
             
+        
+            
             logger.info(f"Embeddings created successfully: {processed_doc.metadata.collection_id}")
             return vectorstore
             
@@ -414,29 +416,34 @@ class HRRAGSystem:
     def remove_collection(self, collection_id: str) -> bool:
         """
         Remove a collection from the system.
-        
+
         Args:
             collection_id: ID of the collection to remove
-            
+
         Returns:
             bool: True if successful, False otherwise
         """
+        print(f"Attempting to remove collection: {collection_id}")
         try:
             if collection_id in self.active_collections:
                 # Remove from active collections
                 del self.active_collections[collection_id]
-                
+
                 # Remove directory
                 collection_path = self.base_path / "chroma_db" / collection_id
                 if collection_path.exists():
                     import shutil
                     shutil.rmtree(str(collection_path))
-                
+                    print(f"Removed collection directory: {collection_path}")
+                else:
+                    print(f"Collection directory not found: {collection_path}")
+
                 logger.info(f"Removed collection: {collection_id}")
                 return True
-                
-            return False
-            
+            else:
+                logger.warning(f"Collection not found in active collections: {collection_id}")
+                return False
+
         except Exception as e:
             logger.error(f"Error removing collection: {str(e)}")
             return False
@@ -468,3 +475,38 @@ class HRRAGSystem:
         except Exception as e:
             logger.error(f"Error getting collections info: {str(e)}")
             return []
+        
+    def remove_collection(self, collection_id: str) -> bool:
+        """
+        Remove a collection from the system.
+
+        Args:
+            collection_id: ID of the collection to remove
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        print(f"Attempting to remove collection: {collection_id}")
+        try:
+            if collection_id in self.active_collections:
+                # Remove from active collections
+                del self.active_collections[collection_id]
+
+                # Remove directory
+                collection_path = self.base_path / "chroma_db" / collection_id
+                if collection_path.exists():
+                    import shutil
+                    shutil.rmtree(str(collection_path))
+                    print(f"Removed collection directory: {collection_path}")
+                else:
+                    print(f"Collection directory not found: {collection_path}")
+
+                logger.info(f"Removed collection: {collection_id}")
+                return True
+            else:
+                logger.warning(f"Collection not found in active collections: {collection_id}")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error removing collection: {str(e)}")
+            return False

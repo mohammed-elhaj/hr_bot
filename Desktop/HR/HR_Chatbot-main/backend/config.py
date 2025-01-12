@@ -18,6 +18,7 @@ DATA_DIR = BASE_DIR / "data"
 # Document paths
 DOCUMENTS_DIR = DATA_DIR / "documents"
 CHROMA_DIR = DATA_DIR / "chroma_db"
+DOCUMENT_MAPPING_FILE = DATA_DIR / "document_mapping.csv"
 
 # CSV file paths
 VACATIONS_FILE = DATA_DIR / "vacations.csv"

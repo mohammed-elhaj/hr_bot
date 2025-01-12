@@ -5,7 +5,9 @@ export const API_ENDPOINTS = {
     VACATION_BALANCE: '/api/employee/vacation-balance',
     VACATION_REQUEST: '/api/employee/vacation-request',
     DOCUMENTS: '/api/admin/documents',
-    UPLOAD_DOCUMENT: '/api/admin/upload'
+    UPLOAD_DOCUMENT: '/api/admin/upload',
+    ADMIN_TICKETS: '/api/admin/tickets'
+
   };
   
   export const VACATION_TYPES = {

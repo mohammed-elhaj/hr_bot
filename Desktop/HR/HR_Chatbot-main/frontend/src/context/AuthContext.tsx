@@ -1,8 +1,9 @@
 // src/context/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '../types/api';
 import { authService } from '../services/auth';
 import { storage } from '../utils/storage';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   user: User | null;
@@ -19,19 +20,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const checkAuth = useCallback(async () => {
+    const storedUser = storage.getUser();
+    if (storedUser) {
+      setUser(storedUser);
+    }
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
-    // Check for existing session
-    const checkAuth = async () => {
-      const storedUser = storage.getUser();
-      if (storedUser) {
-        setUser(storedUser);
-      }
-      setIsLoading(false);
-    };
-
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
   const login = async (username: string, password: string) => {
     setIsLoading(true);
@@ -40,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await authService.login({ username, password });
       const userData = response.user;
-      
+
       setUser(userData);
       storage.setUser(userData);
     } catch (error: any) {
@@ -52,9 +53,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    authService.logout();
     setUser(null);
     storage.clear();
+    navigate('/');
   };
 
   return (
@@ -73,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+// Export useAuth
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -80,6 +82,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-
-
