@@ -1,4 +1,4 @@
-// src/components/documents/DocumentList.tsx
+// DocumentList.tsx
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -8,7 +8,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useDocuments } from '../../hooks/useDocuments';
-import { DocumentMetadata, AllowedFileType } from '../../types/documents';
+import { DocumentMetadata } from '../../types/documents';
 import { formatDate } from '../../utils/data';
 import ContentSkeleton from '../common/ContentSkeleton';
 
@@ -17,21 +17,19 @@ const DocumentList: React.FC = () => {
 
   useEffect(() => {
     fetchDocuments();
-  }, [fetchDocuments]);
+  }, []); // Fetch on component mount
 
   const handleDelete = async (documentId: string) => {
     try {
       await deleteDocument(documentId);
+      // Refetch documents after successful deletion
+      await fetchDocuments();
     } catch (error) {
       // Error is handled by the context
     }
   };
 
-  const getFileTypeIcon = (type: AllowedFileType) => {
-    // Placeholder - replace with actual icons
-    return <FileText className="w-5 h-5" />;
-  };
-
+  // Show loading state while fetching
   if (state.isLoading && !state.documents.length) {
     return <ContentSkeleton type="list" count={5} />;
   }
@@ -41,7 +39,7 @@ const DocumentList: React.FC = () => {
       {/* Documents List */}
       {state.documents.length > 0 ? (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          {/* Table Header (Simplified) */}
+          {/* Table Header */}
           <div className="grid grid-cols-3 gap-4 px-4 py-3 bg-gray-50 border-b text-sm font-medium text-gray-500">
             <div>اسم الملف</div>
             <div>النوع</div>
@@ -60,7 +58,7 @@ const DocumentList: React.FC = () => {
               {/* File Name */}
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gray-100 rounded">
-                  {getFileTypeIcon(doc.fileType)}
+                  <FileText className="w-5 h-5" />
                 </div>
                 <div className="truncate">
                   <p className="font-medium text-gray-900 truncate">{doc.title}</p>
@@ -73,14 +71,14 @@ const DocumentList: React.FC = () => {
               {/* File Type */}
               <div>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                {doc.fileType ? doc.fileType.toUpperCase() : ''}
+                  {doc.fileType ? doc.fileType.toUpperCase() : ''}
                 </span>
               </div>
 
               {/* Actions */}
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => window.open( `/api/documents/${doc.id}/download`)}
+                  onClick={() => window.open(`/api/documents/${doc.id}/download`)}
                   className="p-1 text-gray-400 hover:text-gray-500"
                   title="تحميل"
                 >
@@ -105,23 +103,23 @@ const DocumentList: React.FC = () => {
           </div>
           <h3 className="mt-4 text-lg font-medium text-gray-900">لا توجد مستندات</h3>
           <p className="mt-2 text-gray-500">
-              ابدأ برفع مستنداتك
+            ابدأ برفع مستنداتك
           </p>
         </div>
       )}
 
       {/* Error Message */}
       {state.error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-red-50 text-red-600 p-4 rounded-lg flex items-center gap-2"
-          >
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <span>{state.error}</span>
-          </motion.div>
-        )}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="bg-red-50 text-red-600 p-4 rounded-lg flex items-center gap-2"
+        >
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span>{state.error}</span>
+        </motion.div>
+      )}
     </div>
   );
 };

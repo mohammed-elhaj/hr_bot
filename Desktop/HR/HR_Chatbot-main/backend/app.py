@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
@@ -12,10 +12,11 @@ from tools.support_ticket_tool import SupportTicketTool
 import shutil
 
 
+
 # Load environment variables
 load_dotenv()
-
-app = Flask(__name__)
+app = Flask('__name__', static_folder='static', static_url_path='')
+#app = Flask(__name__)
 CORS(app)
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -36,6 +37,14 @@ agent = HRAgent(
     vacations_file='data/vacations.csv',
     tickets_file='data/tickets.csv'
 )
+
+@app.route('/')
+def serve():
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.errorhandler(404)
+def not_found(e):
+    return send_from_directory(app.static_folder, "index.html")
 
            
 @app.route('/api/auth/login', methods=['POST'])
@@ -396,4 +405,8 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Error loading initial documents: {str(e)}")
     
-    app.run( port=5000)
+    #app.run( port=5000)
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port, debug=True)
+    
+    
