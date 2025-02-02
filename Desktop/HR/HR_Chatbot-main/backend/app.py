@@ -108,7 +108,7 @@ def chat():
     try:
         data = request.json
         message = data.get('message', '').strip()
-        employee_id = data.get('employee_id')
+        employee_id = data.get('type')
         
         if not message:
             return jsonify({'error': 'Message is required'}), 400
@@ -310,7 +310,7 @@ def submit_vacation_request():
     """Submit a new vacation request"""
     try:
         data = request.json
-        employee_id = data.get('employee_id')
+        employee_id = data.get('type')
         start_date = data.get('start_date')
         end_date = data.get('end_date')
         request_type = data.get('request_type')
@@ -406,7 +406,7 @@ if __name__ == '__main__':
         print(f"Error loading initial documents: {str(e)}")
     
     #app.run( port=5000)
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
     
     

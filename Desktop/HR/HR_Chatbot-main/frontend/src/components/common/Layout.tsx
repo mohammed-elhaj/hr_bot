@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; // Added AnimatePresence import
 import { 
   Menu, 
   X, 
   User, 
   LogOut,
-  MessageSquare, // Added for chat button
-  Bot // Added for chat icon
+  MessageSquare,
+  Bot,
+  FileText,
+  Ticket
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -33,6 +35,32 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       navigate('/chat');
     }
   };
+
+  // Navigation items based on user role
+  const getNavigationItems = () => {
+    const items = [
+      { href: '/', label: 'الرئيسية', isActive: location.pathname === '/' }
+    ];
+
+    if (isAdmin) {
+      items.push(
+        { 
+          href: '/documents', 
+          label: 'المستندات', 
+          isActive: location.pathname === '/documents' 
+        },
+        { 
+          href: '/tickets', 
+          label: 'التذاكر', 
+          isActive: location.pathname === '/tickets' 
+        }
+      );
+    }
+
+    return items;
+  };
+
+  const navigationItems = getNavigationItems();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -63,17 +91,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8 space-x-reverse">
-              <NavLink href="/" isActive={location.pathname === '/'}>
-                الرئيسية
-              </NavLink>
-              <NavLink href="/documents" isActive={location.pathname === '/documents'}>
-                المستندات
-              </NavLink>
-              {isAdmin && (
-                <NavLink href="/tickets" isActive={location.pathname === '/tickets'}>
-                  التذاكر
+              {navigationItems.map((item) => (
+                <NavLink 
+                  key={item.href}
+                  href={item.href}
+                  isActive={item.isActive}
+                >
+                  {item.label}
                 </NavLink>
-              )}
+              ))}
               
               {/* Chat Button */}
               {user && !isOnChatPage && (
@@ -132,65 +158,61 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         </div>
 
         {/* Mobile Menu */}
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{
-            opacity: isMobileMenuOpen ? 1 : 0,
-            height: isMobileMenuOpen ? 'auto' : 0
-          }}
-          className="md:hidden bg-white border-t"
-        >
-          <div className="px-4 py-2 space-y-1">
-            <MobileNavLink href="/" isActive={location.pathname === '/'}>
-              الرئيسية
-            </MobileNavLink>
-            <MobileNavLink href="/documents" isActive={location.pathname === '/documents'}>
-              المستندات
-            </MobileNavLink>
-            {isAdmin && (
-              <MobileNavLink href="/tickets" isActive={location.pathname === '/tickets'}>
-                التذاكر
-              </MobileNavLink>
-            )}
-            
-            {/* Mobile Chat Button */}
-            {user && !isOnChatPage && (
-              <button
-                onClick={navigateToChat}
-                className="w-full flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
-              >
-                <Bot className="w-5 h-5" />
-                المساعد الافتراضي
-              </button>
-            )}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden bg-white border-t"
+            >
+              <div className="px-4 py-2 space-y-1">
+                {navigationItems.map((item) => (
+                  <MobileNavLink
+                    key={item.href}
+                    href={item.href}
+                    isActive={item.isActive}
+                  >
+                    {item.label}
+                  </MobileNavLink>
+                ))}
+                
+                {/* Mobile Chat Button */}
+                {user && !isOnChatPage && (
+                  <button
+                    onClick={navigateToChat}
+                    className="w-full flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                  >
+                    <Bot className="w-5 h-5" />
+                    المساعد الافتراضي
+                  </button>
+                )}
 
-            {/* Mobile Login/Logout Button */}
-            {user ? (
-              <button
-                onClick={logout}
-                className="w-full flex items-center gap-2 px-4 py-2 border-2 border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
-              >
-                <LogOut className="w-5 h-5" />
-                تسجيل الخروج
-              </button>
-            ) : (
-              <Link
-                to="/login"
-                className="block w-full text-center px-4 py-2 bg-gradient-to-r from-primary-500 to-purple-500 text-white rounded-lg"
-              >
-                <User className="w-5 h-5 inline-block mr-2" />
-                تسجيل الدخول
-              </Link>
-            )}
-          </div>
-        </motion.div>
+                {/* Mobile Login/Logout Button */}
+                {user ? (
+                  <button
+                    onClick={logout}
+                    className="w-full flex items-center gap-2 px-4 py-2 border-2 border-primary-500 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    تسجيل الخروج
+                  </button>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="block w-full text-center px-4 py-2 bg-gradient-to-r from-primary-500 to-purple-500 text-white rounded-lg"
+                  >
+                    <User className="w-5 h-5 inline-block mr-2" />
+                    تسجيل الدخول
+                  </Link>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.nav>
 
       <main className="pt-20">{children}</main>
-
-      <footer className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white">
-        {/* footer code here */}
-      </footer>
     </div>
   );
 };

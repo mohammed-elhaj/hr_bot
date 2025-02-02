@@ -66,13 +66,6 @@ const features = [
   }
 ];
 
-const stats = [
-  { number: "98%", label: "رضا المستخدمين" },
-  { number: "60%", label: "توفير في الوقت" },
-  { number: "24/7", label: "دعم متواصل" },
-  { number: "500+", label: "شركة تستخدم النظام" }
-];
-
 const LandingPage = () => {
   return (
     <Layout>
@@ -91,8 +84,7 @@ const HeroSection = () => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <section className="relative min-h-screen flex items-center py-20 overflow-hidden">
-      {/* Background Elements */}
+    <section className="relative min-h-screen flex items-center py-12 md:py-20 overflow-hidden">
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
           animate={{
@@ -112,25 +104,24 @@ const HeroSection = () => {
         />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Text Content */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             className="text-center lg:text-right"
           >
-           <motion.h1
+            <motion.h1
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
   transition={{ delay: 0.2 }}
-  className="text-5xl lg:text-6xl font-bold leading-normal" // Use leading-normal for better spacing
+  className="text-4xl md:text-5xl lg:text-6xl font-bold leading-relaxed md:leading-tight mb-6"
 >
-  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-purple-600">
+  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-purple-600 mb-2">
     مستقبل إدارة
   </span>
-  <span className="block text-gray-900">
+  <span className="block text-gray-900 mt-4">
     الموارد البشرية
   </span>
 </motion.h1>
@@ -139,7 +130,7 @@ const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="mt-6 text-xl text-gray-600 max-w-2xl mx-auto lg:mx-0"
+              className="mt-6 text-lg md:text-xl text-gray-600 max-w-2xl mx-auto lg:mx-0"
             >
               نظام ذكي يجمع بين قوة الذكاء الاصطناعي وخبرة الموارد البشرية لتقديم تجربة فريدة وفعالة
             </motion.p>
@@ -148,16 +139,17 @@ const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="mt-10 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+              className="mt-8 md:mt-10 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
             >
-              <motion.button
+              {/* <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onHoverStart={() => setIsHovered(true)}
                 onHoverEnd={() => setIsHovered(false)}
                 onClick={() => navigate('/chat')}
-                className="px-8 py-4 bg-gradient-to-r from-primary-500 to-primary-700 text-white rounded-xl font-medium 
-                         hover:shadow-lg hover:shadow-primary-500/25 transition-all relative overflow-hidden group"
+                className="px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-primary-500 to-primary-700 
+                         text-white rounded-xl font-medium hover:shadow-lg hover:shadow-primary-500/25 
+                         transition-all relative overflow-hidden group w-full sm:w-auto"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   <Bot className="w-5 h-5" />
@@ -169,14 +161,15 @@ const HeroSection = () => {
                   animate={{ x: isHovered ? '0%' : '-100%' }}
                   transition={{ duration: 0.3 }}
                 />
-              </motion.button>
+              </motion.button> */}
 
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate('/login')}
-                className="px-8 py-4 border-2 border-primary-500 text-primary-700 rounded-xl font-medium
-                         hover:bg-primary-50 transition-all flex items-center justify-center gap-2"
+                className="px-6 md:px-8 py-3 md:py-4 border-2 border-primary-500 text-primary-700 
+                         rounded-xl font-medium hover:bg-primary-50 transition-all 
+                         flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 <ArrowLeft className="w-5 h-5" />
                 ابدأ الآن
@@ -184,15 +177,14 @@ const HeroSection = () => {
             </motion.div>
           </motion.div>
 
-          {/* Hero Image/Animation */}
+          {/* Hero Image/Animation - Hidden on mobile */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4, duration: 0.8 }}
-            className="relative"
+            className="relative hidden lg:block"
           >
             <div className="relative w-full h-[600px] bg-gradient-to-br from-primary-100 to-purple-100 rounded-2xl overflow-hidden">
-              {/* Animated Elements */}
               <motion.div
                 animate={{
                   y: [0, -20, 0],
@@ -212,8 +204,6 @@ const HeroSection = () => {
               >
                 <Calendar className="w-full h-full text-purple-500" />
               </motion.div>
-
-              {/* Add more animated elements as needed */}
             </div>
           </motion.div>
         </div>
@@ -224,23 +214,23 @@ const HeroSection = () => {
 
 const FeaturesSection = () => {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-12 md:py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center max-w-3xl mx-auto mb-16"
+          className="text-center max-w-3xl mx-auto mb-12 md:mb-16"
         >
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
             ميزات متقدمة لتحسين إدارة الموارد البشرية
           </h2>
-          <p className="text-xl text-gray-600">
+          <p className="text-lg md:text-xl text-gray-600">
             نظام متكامل يجمع بين أحدث التقنيات وأفضل الممارسات لتقديم تجربة فريدة
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
@@ -251,16 +241,16 @@ const FeaturesSection = () => {
               whileHover={{ y: -5 }}
               className="relative group"
             >
-              <div className="bg-white rounded-2xl shadow-lg p-8 transition-shadow hover:shadow-xl border border-gray-100">
-                <div className={`w-14 h-14 rounded-xl bg-gradient-to-r ${feature.gradient} p-3 mb-6`}>
+              <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 transition-shadow hover:shadow-xl border border-gray-100 h-full">
+                <div className={`w-12 md:w-14 h-12 md:h-14 rounded-xl bg-gradient-to-r ${feature.gradient} p-3 mb-6`}>
                   <feature.icon className="w-full h-full text-white" />
                 </div>
-                <h3 className="text-xl font-semibold mb-4">{feature.title}</h3>
-                <p className="text-gray-600 mb-6">{feature.description}</p>
+                <h3 className="text-lg md:text-xl font-semibold mb-4">{feature.title}</h3>
+                <p className="text-gray-600 mb-6 text-sm md:text-base">{feature.description}</p>
                 <ul className="space-y-2">
                   {feature.benefits.map((benefit, i) => (
-                    <li key={i} className="flex items-center gap-2 text-gray-600">
-                      <CheckCircle className="w-5 h-5 text-primary-500" />
+                    <li key={i} className="flex items-center gap-2 text-gray-600 text-sm md:text-base">
+                      <CheckCircle className="w-4 md:w-5 h-4 md:h-5 text-primary-500 flex-shrink-0" />
                       <span>{benefit}</span>
                     </li>
                   ))}
@@ -274,8 +264,6 @@ const FeaturesSection = () => {
   );
 };
 
-// I'll continue with the rest of the sections in the next response due to length...
-
 const DemoSection = () => {
   const [activeTab, setActiveTab] = useState('chat');
   const navigate = useNavigate();
@@ -286,13 +274,13 @@ const DemoSection = () => {
       description: "احصل على إجابات فورية لجميع استفساراتك",
       icon: Bot,
       preview: (
-        <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-6 space-y-4">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center">
               <Bot className="w-4 h-4 text-white" />
             </div>
-            <div className="flex-1 bg-gray-50 rounded-xl p-4">
-              <p className="text-gray-800">كيف يمكنني المساعدة اليوم؟</p>
+            <div className="flex-1 bg-gray-50 rounded-xl p-3 md:p-4">
+              <p className="text-sm md:text-base text-gray-800">كيف يمكنني المساعدة اليوم؟</p>
             </div>
           </div>
           <motion.div
@@ -303,8 +291,8 @@ const DemoSection = () => {
             <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
               <User className="w-4 h-4 text-gray-600" />
             </div>
-            <div className="flex-1 bg-primary-50 rounded-xl p-4">
-              <p className="text-primary-900">أريد معرفة رصيد إجازاتي</p>
+            <div className="flex-1 bg-primary-50 rounded-xl p-3 md:p-4">
+              <p className="text-sm md:text-base text-primary-900">أريد معرفة رصيد إجازاتي</p>
             </div>
           </motion.div>
         </div>
@@ -315,11 +303,11 @@ const DemoSection = () => {
       description: "قدم وتتبع طلبات الإجازة بسهولة",
       icon: Calendar,
       preview: (
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h4 className="font-medium">رصيد الإجازات</h4>
-              <span className="text-primary-600 font-bold">21 يوم</span>
+              <h4 className="font-medium text-sm md:text-base">رصيد الإجازات</h4>
+              <span className="text-primary-600 font-bold text-lg md:text-xl">21 يوم</span>
             </div>
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <motion.div
@@ -338,16 +326,16 @@ const DemoSection = () => {
       description: "احفظ وشارك المستندات بأمان",
       icon: FileText,
       preview: (
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
             {[1, 2, 3, 4].map((i) => (
               <motion.div
                 key={i}
                 whileHover={{ scale: 1.05 }}
-                className="p-4 border rounded-lg flex items-center gap-2"
+                className="p-3 md:p-4 border rounded-lg flex items-center gap-2"
               >
-                <FileText className="w-5 h-5 text-primary-500" />
-                <span className="text-sm">مستند {i}</span>
+                <FileText className="w-4 md:w-5 h-4 md:h-5 text-primary-500" />
+                <span className="text-xs md:text-sm">مستند {i}</span>
               </motion.div>
             ))}
           </div>
@@ -357,51 +345,51 @@ const DemoSection = () => {
   };
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-12 md:py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center max-w-3xl mx-auto mb-16"
+          className="text-center max-w-3xl mx-auto mb-12 md:mb-16"
         >
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
             جرب النظام بنفسك
           </h2>
-          <p className="text-xl text-gray-600">
+          <p className="text-base md:text-lg text-gray-600">
             استكشف ميزات النظام الرئيسية من خلال العرض التفاعلي
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-start">
           {/* Feature Tabs */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {Object.entries(demoFeatures).map(([key, feature]) => (
               <motion.button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={`w-full text-right p-6 rounded-xl transition-all ${
+                className={`w-full text-right p-4 md:p-6 rounded-xl transition-all ${
                   activeTab === key
                     ? 'bg-white shadow-lg border-primary-500 border-2'
                     : 'bg-white/50 hover:bg-white'
                 }`}
                 whileHover={{ x: activeTab === key ? 0 : 5 }}
               >
-                <div className="flex items-start gap-4">
-                  <div className={`p-3 rounded-lg ${
+                <div className="flex items-start gap-3 md:gap-4">
+                  <div className={`p-2 md:p-3 rounded-lg ${
                     activeTab === key
                       ? 'bg-primary-50 text-primary-600'
                       : 'bg-gray-100 text-gray-600'
                   }`}>
-                    <feature.icon className="w-6 h-6" />
+                    <feature.icon className="w-5 md:w-6 h-5 md:h-6" />
                   </div>
                   <div>
-                    <h3 className={`font-semibold mb-1 ${
+                    <h3 className={`font-semibold text-sm md:text-base mb-1 ${
                       activeTab === key ? 'text-primary-900' : 'text-gray-900'
                     }`}>
                       {feature.title}
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 text-xs md:text-sm">
                       {feature.description}
                     </p>
                   </div>
@@ -411,7 +399,7 @@ const DemoSection = () => {
           </div>
 
           {/* Preview Area */}
-          <div className="bg-gray-100 rounded-2xl p-8">
+          <div className="bg-gray-100 rounded-2xl p-4 md:p-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
@@ -430,11 +418,12 @@ const DemoSection = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mt-12"
+          className="text-center mt-8 md:mt-12"
         >
           <button
             onClick={() => navigate('/chat')}
-            className="px-8 py-4 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
+            className="px-6 md:px-8 py-3 md:py-4 bg-primary-600 text-white rounded-xl 
+                     hover:bg-primary-700 transition-colors text-sm md:text-base"
           >
             جرب النظام مجاناً
           </button>
@@ -446,51 +435,59 @@ const DemoSection = () => {
 
 const StatsSection = () => {
   return (
-    <section className="py-20 bg-gradient-to-br from-primary-900 via-primary-800 to-purple-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-12 md:py-20 bg-gradient-to-br from-primary-600 to-purple-600 text-white relative overflow-hidden">
+      {/* Add overlay gradient for better contrast */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/20"></div>
+      
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-12 md:mb-16"
         >
-          <h2 className="text-3xl font-bold mb-4 text-white">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-white drop-shadow-sm">
             أرقام تتحدث عن نجاحنا
           </h2>
-          <p className="text-xl text-gray-100">
+          <p className="text-base md:text-lg text-white/90">
             نتائج ملموسة تؤكد فعالية نظامنا
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat, index) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+          {[
+            { number: "98%", label: "رضا المستخدمين" },
+            { number: "60%", label: "توفير في الوقت" },
+            { number: "24/7", label: "دعم متواصل" },
+            { number: "500+", label: "شركة تستخدم النظام" }
+          ].map((stat, index) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.2 }}
-              className="text-center"
+              className="text-center p-6 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10"
             >
               <motion.div
                 initial={{ scale: 0 }}
                 whileInView={{ scale: 1 }}
                 viewport={{ once: true }}
-                transition={{
-                  type: "spring",
-                  delay: index * 0.2 + 0.3,
-                  duration: 0.8
-                }}
-                className="mb-4"
+                transition={{ type: "spring", delay: index * 0.2 + 0.3 }}
+                className="mb-2 md:mb-4"
               >
-                <span className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-white to-primary-200 bg-clip-text text-transparent">
+                <span className="text-3xl md:text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">
                   {stat.number}
                 </span>
               </motion.div>
-              <p className="text-gray-100">{stat.label}</p>
+              <p className="text-sm md:text-base text-white/90">{stat.label}</p>
             </motion.div>
           ))}
         </div>
+
+        {/* Add decorative elements */}
+        <div className="absolute top-0 left-0 w-72 h-72 bg-white/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-0 w-72 h-72 bg-white/5 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
       </div>
     </section>
   );
@@ -519,23 +516,23 @@ const TestimonialsSection = () => {
   ];
 
   return (
-    <section className="py-20 bg-white">
+    <section className="py-12 md:py-20 bg-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-12 md:mb-16"
         >
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
             ماذا يقول عملاؤنا
           </h2>
-          <p className="text-xl text-gray-600">
+          <p className="text-base md:text-lg text-gray-600">
             قصص نجاح حقيقية من عملائنا
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {testimonials.map((testimonial, index) => (
             <motion.div
               key={index}
@@ -543,30 +540,30 @@ const TestimonialsSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.2 }}
-              className="bg-gray-50 rounded-2xl p-8 relative"
+              className="bg-gray-50 rounded-2xl p-6 md:p-8 relative"
             >
               <div className="absolute top-0 right-0 transform -translate-y-1/2 translate-x-1/2">
-                <div className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center">
-                  <MessageSquare className="w-6 h-6 text-white" />
+                <div className="w-10 md:w-12 h-10 md:h-12 rounded-full bg-primary-500 flex items-center justify-center">
+                  <MessageSquare className="w-5 md:w-6 h-5 md:h-6 text-white" />
                 </div>
               </div>
               
-              <p className="text-gray-600 mb-6">{testimonial.content}</p>
+              <p className="text-gray-600 mb-6 text-sm md:text-base">{testimonial.content}</p>
               
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-primary-500 to-purple-500 flex items-center justify-center">
-                  <span className="text-lg font-bold text-white">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="w-10 md:w-12 h-10 md:h-12 rounded-full bg-gradient-to-r from-primary-500 to-purple-500 flex items-center justify-center">
+                  <span className="text-base md:text-lg font-bold text-white">
                     {testimonial.author[0]}
                   </span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900">
+                  <h4 className="font-semibold text-gray-900 text-sm md:text-base">
                     {testimonial.author}
                   </h4>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs md:text-sm text-gray-500">
                     {testimonial.position}
                   </p>
-                  <p className="text-sm text-primary-600">
+                  <p className="text-xs md:text-sm text-primary-600">
                     {testimonial.company}
                   </p>
                 </div>
@@ -583,20 +580,20 @@ const CallToAction = () => {
   const navigate = useNavigate();
   
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-12 md:py-20 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="relative bg-gradient-to-r from-primary-500 to-purple-500 rounded-3xl overflow-hidden"
+          className="relative bg-gradient-to-r from-primary-500 to-purple-500 rounded-2xl md:rounded-3xl overflow-hidden"
         >
-          <div className="relative z-10 px-8 py-16 text-center text-white">
+          <div className="relative z-10 p-6 md:p-12 lg:p-16 text-center text-white">
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-3xl md:text-4xl font-bold mb-6"
+              className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6"
             >
               جاهز لتجربة مستقبل الموارد البشرية؟
             </motion.h2>
@@ -606,7 +603,7 @@ const CallToAction = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="text-xl mb-8 text-white/90 max-w-2xl mx-auto"
+              className="text-base md:text-lg text-white/90 max-w-2xl mx-auto mb-8"
             >
               ابدأ اليوم واكتشف كيف يمكن لمساعدنا الذكي تحسين كفاءة إدارة الموارد البشرية
             </motion.p>
@@ -618,23 +615,25 @@ const CallToAction = () => {
               transition={{ delay: 0.4 }}
               className="flex flex-col sm:flex-row gap-4 justify-center"
             >
-              <motion.button
+              {/* <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate('/chat')}
-                className="px-8 py-4 bg-white text-primary-600 rounded-xl font-medium 
-                         hover:bg-gray-50 transition-all flex items-center justify-center gap-2"
+                className="px-6 md:px-8 py-3 md:py-4 bg-white text-primary-600 rounded-xl font-medium 
+                         hover:bg-gray-50 transition-all flex items-center justify-center gap-2
+                         text-sm md:text-base w-full sm:w-auto"
               >
                 <Bot className="w-5 h-5" />
                 جرب المساعد الذكي
-              </motion.button>
+              </motion.button> */}
 
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate('/login')}
-                className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-xl 
-                         font-medium hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                className="px-6 md:px-8 py-3 md:py-4 bg-transparent border-2 border-white text-white 
+                         rounded-xl font-medium hover:bg-white/10 transition-all 
+                         flex items-center justify-center gap-2 text-sm md:text-base w-full sm:w-auto"
               >
                 <ArrowLeft className="w-5 h-5" />
                 سجل الآن
@@ -653,7 +652,7 @@ const CallToAction = () => {
               repeat: Infinity,
               ease: "linear"
             }}
-            className="absolute -left-20 -top-20 w-60 h-60 bg-white/10 rounded-full blur-2xl"
+            className="absolute -left-20 -top-20 w-40 md:w-60 h-40 md:h-60 bg-white/10 rounded-full blur-2xl"
           />
           <motion.div
             animate={{
@@ -665,12 +664,12 @@ const CallToAction = () => {
               repeat: Infinity,
               ease: "linear"
             }}
-            className="absolute -right-20 -bottom-20 w-60 h-60 bg-white/10 rounded-full blur-2xl"
+            className="absolute -right-20 -bottom-20 w-40 md:w-60 h-40 md:h-60 bg-white/10 rounded-full blur-2xl"
           />
         </motion.div>
 
         {/* Bottom Feature Cards */}
-        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="mt-12 md:mt-20 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           {[
             {
               title: "دعم فني متميز",
@@ -697,32 +696,32 @@ const CallToAction = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.2 }}
-              className="text-center"
+              className="text-center bg-white rounded-xl p-6 md:p-8 shadow-sm"
             >
               <div className="inline-block p-3 bg-gray-100 rounded-xl mb-4">
-                <feature.icon className={`w-6 h-6 ${feature.color}`} />
+                <feature.icon className={`w-5 md:w-6 h-5 md:h-6 ${feature.color}`} />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">
                 {feature.title}
               </h3>
-              <p className="text-gray-600">{feature.description}</p>
+              <p className="text-sm md:text-base text-gray-600">{feature.description}</p>
             </motion.div>
           ))}
         </div>
 
         {/* FAQ Section */}
-        <div className="mt-20">
+        <div className="mt-12 md:mt-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-8 md:mb-12"
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">الأسئلة الشائعة</h2>
-            <p className="text-xl text-gray-600">إجابات على الأسئلة الأكثر شيوعاً</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">الأسئلة الشائعة</h2>
+            <p className="text-base md:text-lg text-gray-600">إجابات على الأسئلة الأكثر شيوعاً</p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             {[
               {
                 question: "كيف يمكنني البدء باستخدام النظام؟",
@@ -747,10 +746,10 @@ const CallToAction = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white p-6 rounded-xl shadow-sm"
+                className="bg-white p-6 md:p-8 rounded-xl shadow-sm"
               >
-                <h4 className="font-semibold text-gray-900 mb-2">{faq.question}</h4>
-                <p className="text-gray-600">{faq.answer}</p>
+                <h4 className="font-semibold text-gray-900 text-base md:text-lg mb-2">{faq.question}</h4>
+                <p className="text-sm md:text-base text-gray-600">{faq.answer}</p>
               </motion.div>
             ))}
           </div>

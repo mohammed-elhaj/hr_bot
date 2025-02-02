@@ -15,7 +15,6 @@ import DocumentPage from './pages/DocumentPage';
 import VacationPage from './pages/VacationPage';
 import TicketsPage from './pages/TicketsPage';
 
-
 const App = () => {
   return (
     <Router>
@@ -24,33 +23,39 @@ const App = () => {
           <ChatProvider>
             <VacationProvider>
               <DocumentProvider>
-              <TicketProvider>
-
-                <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/documents" element={<DocumentPage />} />
-                  <Route path="/vacation" element={<VacationPage />} />
-                  <Route
-    path="/tickets"
-    element={
-        <ProtectedRoute requiredRole="admin">
-            <TicketsPage />
-        </ProtectedRoute>
-    }
-/>
-                  <Route
-                    path="/chat"
-                    element={
-                      <ProtectedRoute>
-                        <ErrorBoundary>
-                          <ChatPage />
-                        </ErrorBoundary>
-                      </ProtectedRoute>
-                    }
-                  />
-                </Routes>
-              </TicketProvider>
+                <TicketProvider>
+                  <Routes>
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route
+                      path="/documents"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <DocumentPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="/vacation" element={<VacationPage />} />
+                    <Route
+                      path="/tickets"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <TicketsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/chat"
+                      element={
+                        <ProtectedRoute>
+                          <ErrorBoundary>
+                            <ChatPage />
+                          </ErrorBoundary>
+                        </ProtectedRoute>
+                      }
+                    />
+                  </Routes>
+                </TicketProvider>
               </DocumentProvider>
             </VacationProvider>
           </ChatProvider>

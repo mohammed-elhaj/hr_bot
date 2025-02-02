@@ -1,8 +1,8 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.agents import initialize_agent, Tool
+from langchain.agents import create_structured_chat_agent, AgentExecutor
 from langchain.tools import StructuredTool
-from langchain.agents import AgentType , StructuredChatAgent
-from langchain.schema import HumanMessage
+from langchain.schema import HumanMessage, AIMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import pandas as pd
 from datetime import datetime
 import os
@@ -10,24 +10,21 @@ from typing import Dict, List, Optional
 from tools.rag_tool import RAGTool
 from tools.vacation_tool import VacationTool
 from tools.ticket_tool import TicketTool
-import json 
-from langchain.tools import StructuredTool
+import json
 from pydantic import BaseModel, Field
 from tools.support_ticket_tool import SupportTicketTool
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 import config
-
-
 
 class VacationRequestSchema(BaseModel):
     employee_id: str = Field(description="The ID of the employee requesting vacation")
     start_date: str = Field(description="The start date of the vacation (YYYY-MM-DD)")
     end_date: str = Field(description="The end date of the vacation (YYYY-MM-DD)")
     request_type: str = Field(description="The type of request, e.g., 'vacation'")
+
 class HRAgent:
     def __init__(self, google_api_key: str, openai_api_key: str, vacations_file: str, tickets_file: str):
-        """Initialize the HR Agent with necessary tools and configurations."""
+        """Initialize the HR Agent with structured chat format"""
         self.google_api_key = google_api_key
         self.openai_api_key = openai_api_key
         
@@ -48,129 +45,194 @@ class HRAgent:
             google_api_key=self.google_api_key
         )
 
-        # Define tools for the agent
+        # Define tools with improved descriptions
         self.tools = [
             StructuredTool.from_function(
                 name="PolicyQuery",
                 func=self.rag_tool.query,
-                description="Useful for answering questions about HR policies and regulations. Input should be the policy-related question in arabic langauge as a string."
+                description="يستخدم للإجابة عن أسئلة سياسات الموارد البشرية. المدخلات: سؤال (نص باللغة العربية)"
             ),
             StructuredTool.from_function(
                 name="CheckVacationBalance",
                 func=self.vacation_tool.check_balance,
-                description="Check an employee's vacation balance. Input should be the employee_id as a string."
+                description="يتحقق من رصيد الإجازات. المدخلات: employee_id (نص)"
             ),
             StructuredTool.from_function(
                 name="CreateVacationRequest",
                 func=self.ticket_tool.create_ticket,
-                description="""Create a vacation request ticket.
-                Input should be a dictionary with keys:
-                'employee_id' (string), 'start_date' (YYYY-MM-DD),
-                'end_date' (YYYY-MM-DD), and 'request_type' (string, must be one of: 'annual', 'sick', 'emergency')."""
+                description="""ينشئ طلب إجازة. المدخلات: قاموس يحتوي على:
+                'employee_id': نص
+                'start_date': YYYY-MM-DD
+                'end_date': YYYY-MM-DD
+                'request_type': 'سنوية'/'مرضية'/'طارئة'"""
             ),
-            # Add the new CreateSupportTicket tool
             StructuredTool.from_function(
                 name="CreateSupportTicket",
                 func=self.support_ticket_tool.create_ticket,
-                description="""Creates a support ticket for HR assistance when the chatbot cannot answer a question or when the user is not satisfied with the answer.
-                Input should be a dictionary with keys:
-                'employee_id' (string): The ID of the employee,
-                'summary' (string): A brief summary of the user's issue or question,
-                'description' (string): A more detailed description, potentially including the user's original question and the chatbot's previous answer."""
+                description="""ينشئ تذكرة دعم (بعد موافقة المستخدم). المدخلات: قاموس يحتوي على:
+                'employee_id': نص
+                'summary': ملخص المشكلة
+                'description': تفاصيل المشكلة"""
             )
         ]
 
-        # Initialize the agent
-        self.agent = initialize_agent(
-            self.tools,
-            self.llm,
-            agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
+        # Create structured chat prompt
+        system_template = """أنت مساعد الموارد البشرية. لديك الأدوات التالية:
+
+{tools}
+
+استخدم تنسيق JSON للتحديد الأداة من خلال توفير مفتاح action (اسم الأداة) ومفتاح action_input (مدخلات الأداة).
+
+القيم الصالحة لـ "action": "Final Answer" أو {tool_names}
+
+قدم إجراءً واحداً فقط لكل JSON_BLOB كما يلي:
+
+```
+{{
+  "action": $TOOL_NAME,
+  "action_input": $INPUT
+}}
+```
+
+تعليمات مهمة:
+1. تحقق من رصيد الإجازة قبل إنشاء طلب إجازة
+2. احصل على موافقة صريحة قبل إنشاء تذكرة دعم
+3. تأكد من صحة جميع التفاصيل قبل إنشاء أي تذكرة
+4. استخدم المعلومات من سجل المحادثة عند توفرها
+
+تنسيق التذاكر:
+- تذاكر الدعم: ST-XXXX
+- تذاكر الإجازة: VT-XXXX"""
+
+        human_template = """{input}
+
+{agent_scratchpad}"""
+
+        self.prompt = ChatPromptTemplate.from_messages([
+            ("system", system_template),
+            MessagesPlaceholder(variable_name="chat_history", optional=True),
+            ("human", human_template),
+        ])
+
+        # Initialize structured chat agent
+        agent = create_structured_chat_agent(
+            llm=self.llm,
+            tools=self.tools,
+            prompt=self.prompt,
+            stop_sequence=True
+        )
+
+        # Create agent executor
+        self.agent_executor = AgentExecutor(
+            agent=agent,
+            tools=self.tools,
             verbose=True,
             handle_parsing_errors=True,
-            max_iterations=3
+            max_iterations=5
         )
-        
-        self.active_docs = [] # Initialize active_docs
 
-
-        self.system_prompt = """أنت مساعد الموارد البشرية. مهمتك هي:
-
-        1. الإجابة على أسئلة الموظفين حول سياسات وأنظمة الموارد البشرية باستخدام أداة "PolicyQuery".
-        2. مساعدة الموظفين في التحقق من رصيد إجازاتهم باستخدام أداة "CheckVacationBalance".
-        3. مساعدة الموظفين في تقديم طلبات الإجازة باستخدام أداة "CreateVacationRequest".
-        4. إنشاء تذكرة دعم  باستخدام أداة "CreateSupportTicket" إذا لم تتمكن من الإجابة على سؤال ، أو إذا لم يكن المستخدم راضيًا عن الإجابة المقدمة من أداة "PolicyQuery".
-
-        تعليمات:
-
-        - كن ودوداً ومهنياً.
-        - استخدم المعلومات من الوثائق المتاحة فقط عبر أداة "PolicyQuery".
-        - إذا لم تجد المعلومات في الوثائق باستخدام "PolicyQuery" ، اعتذر بوضوح وأخبر المستخدم أنه سيتم إنشاء تذكرة دعم لطلب المساعدة من الموارد البشرية باستخدام أداة "CreateSupportTicket".
-        - إذا لم تكن متأكداً من طلب المستخدم، اطلب توضيحاً بطريقة مهذبة. على سبيل المثال: "هل يمكنك إعادة صياغة سؤالك؟" أو "هل تقصد ...؟".
-        - عند التعامل مع الإجازات، تحقق دائماً من الرصيد باستخدام أداة "CheckVacationBalance" قبل إنشاء طلب الإجازة باستخدام أداة "CreateVacationRequest".
-        - إذا كان طلب المستخدم يتعلق بالتحقق من رصيد الإجازة أو تقديم طلب إجازة، فاستخدم الأدوات المخصصة لذلك ("CheckVacationBalance" و "CreateVacationRequest") قبل أي إجراء آخر.
-        - إذا أعرب المستخدم عن عدم رضاه عن إجابة "PolicyQuery" ، فاعرض إنشاء تذكرة دعم باستخدام "CreateSupportTicket". قم بتضمين ملخص لسؤال المستخدم والجواب المقدم في التذكرة.
-        - إذا كانت الأداة تتطلب "employee_id" ولم يتم توفيره، فاطلب من المستخدم "employee_id" الخاص به قبل استخدام الأداة. لا تتابع استخدام الاداة بدون 'employee_id'. مثال: "يرجى تقديم رقم الموظف الخاص بك حتى أتمكن من التحقق من رصيد إجازتك."
-        - إذا كان المستخدم يطلب إنشاء طلب إجازة، فاستخرج تاريخ البدء وتاريخ الانتهاء ونوع الطلب. قم بتأكيد هذه التفاصيل مع المستخدم قبل إنشاء التذكرة. مثال: "أنت تطلب إجازة من نوع 'سنوية' ، من تاريخ: 2025-07-01 إلى تاريخ: 2025-07-10. هل هذا صحيح؟"
-        - عند توفرها، استخدم البيانات الوصفية metadata المقدمة، وخاصة "documentId" لتضييق نطاق البحث باستخدام أداة "PolicyQuery".
-
-        أوصاف الأداة:
-        - PolicyQuery: مفيد للإجابة على الأسئلة المتعلقة بسياسات وأنظمة الموارد البشرية. الإدخال: السؤال (سلسلة نصية).
-        - CheckVacationBalance: يتحقق من رصيد إجازات الموظف. الإدخال: employee_id (سلسلة نصية).
-        - CreateVacationRequest: ينشئ تذكرة طلب إجازة. الإدخال: قاموس يحتوي على المفاتيح: 'employee_id' (سلسلة نصية) ، 'start_date' (YYYY-MM-DD) ، 'end_date' (YYYY-MM-DD) ، 'request_type' (سلسلة نصية ، يجب أن تكون واحدة من: 'annual' ، 'sick' ، 'طارئة').
-        - CreateSupportTicket: ينشئ تذكرة دعم لمساعدة الموارد البشرية عندما لا يستطيع chatbot الإجابة على سؤال أو عندما لا يكون المستخدم راضيًا عن الإجابة.
-                        الإدخال: قاموس يحتوي على المفاتيح:
-                        'employee_id' (سلسلة نصية): معرف الموظف،
-                        'summary' (سلسلة نصية): ملخص موجز لمشكلة المستخدم أو سؤاله،
-                        'description' (سلسلة نصية): وصف أكثر تفصيلاً، من المحتمل أن يتضمن سؤال المستخدم الأصلي وإجابة chatbot السابقة.
-        """
+        self.active_docs = []
 
     def process_query(self, message: str, employee_id: Optional[str] = None, metadata: Optional[Dict] = None) -> str:
-        """Process a user query and return the response."""
+        """Process user query with structured chat format and history"""
         try:
-            # Check if the user is asking for vacation balance and employee_id is not provided
+            # Load chat history
+            history = []
+            formatted_history = []
+            if employee_id:
+                history_file = f'data/chat_history_{employee_id}.json'
+                try:
+                    with open(history_file, 'r', encoding='utf-8') as f:
+                        history = json.load(f)
+                        formatted_history = [
+                            HumanMessage(content=msg["content"]) if msg["type"] == "user"
+                            else AIMessage(content=msg["content"])
+                            for msg in history
+                        ]
+                except FileNotFoundError:
+                    pass
+
+            # Handle vacation-related queries without employee_id
             if not employee_id and any(
                     keyword in message.lower() for keyword in ["رصيد اجازتي", "كم يوم باقي"]
             ):
-                return "يرجى تقديم رقم الموظف الخاص بك حتى أتمكن من التحقق من رصيد إجازتك."
+                return "يرجى تقديم رقم الموظف الخاص بك للمتابعة"
 
-            # Add context to the message if employee_id is provided
-            if employee_id:
-                context_message = f"Employee ID: {employee_id}\nQuery: {message}"
-            else:
-                context_message = message
+            # Prepare context for the agent
+            context = {
+                "input": f"[المستخدم: {employee_id or 'غير معروف'}]\n{message}",
+                "chat_history": formatted_history,
+                "metadata": metadata or {}
+            }
 
             # Get agent response
-            result = self.agent.invoke({
-                "input": context_message,
-                "chat_history": [],
-                "system_prompt": self.system_prompt,
-                "metadata": metadata or {}
-            })
+            result = self.agent_executor.invoke(context)
 
-            return result.get('output', "عذراً، لم أستطع معالجة طلبك. الرجاء المحاولة مرة أخرى.")
+            # Save chat history
+            if employee_id:
+                new_history = history + [
+                    {"type": "user", "content": message},
+                    {"type": "bot", "content": result['output']}
+                ]
+                with open(history_file, 'w', encoding='utf-8') as f:
+                    json.dump(new_history, f, ensure_ascii=False, indent=2)
+
+            return result.get('output', "عذراً، حدث خطأ أثناء المعالجة. يرجى إعادة المحاولة")
 
         except Exception as e:
             print(f"Error processing query: {str(e)}")
             return "عذراً، حدث خطأ أثناء معالجة طلبك. الرجاء المحاولة مرة أخرى."
 
     def add_document(self, filepath: str) -> bool:
-        """Add a new document to the RAG system."""
+        """Add a new document to the RAG system"""
         try:
-            return self.rag_tool.add_document(filepath)
+            result = self.rag_tool.add_document(filepath)
+            if result:
+                self.active_docs.append(filepath)
+            return result
         except Exception as e:
             print(f"Error adding document: {str(e)}")
             return False
+        
+    def get_all_tickets(self):
+
+        """Reads and returns all tickets from the CSV file, handling NaN values."""
+
+        try:
+
+            df = pd.read_csv(self.ticket_tool.tickets_file)
+
+
+
+            # Replace NaN values with appropriate defaults
+
+            df = df.fillna({'description': '', 'manager_id': '', 'response_date': '', 'updated_at': ''})
+
+
+
+            tickets = df.to_dict('records')
+
+            return tickets
+
+        except Exception as e:
+
+            print(f"Error reading tickets: {str(e)}")
+
+            return []
 
     def update_active_documents(self, document_list: List[str]) -> bool:
-        """Update the list of active documents in the RAG system."""
+        """Update the list of active documents"""
         try:
-            return self.rag_tool.update_active_documents(document_list)
+            success = self.rag_tool.update_active_documents(document_list)
+            if success:
+                self.active_docs = document_list
+            return success
         except Exception as e:
             print(f"Error updating active documents: {str(e)}")
             return False
 
     def get_vacation_balance(self, employee_id: str) -> Dict:
-        """Get vacation balance for an employee."""
+        """Get vacation balance for an employee"""
         try:
             return self.vacation_tool.check_balance(employee_id)
         except Exception as e:
@@ -178,173 +240,62 @@ class HRAgent:
             return {"error": "Could not retrieve vacation balance"}
 
     def create_vacation_ticket(self, employee_id: str, start_date: str, end_date: str, request_type: str, notes: str = "") -> Dict:
-        """Create a new vacation request ticket."""
-        return self.ticket_tool.create_ticket(employee_id, start_date, end_date, request_type, notes)
-    
+        """Create a new vacation request ticket"""
+        try:
+            return self.ticket_tool.create_ticket(employee_id, start_date, end_date, request_type, notes)
+        except Exception as e:
+            print(f"Error creating vacation ticket: {str(e)}")
+            return {"error": "Could not create vacation ticket"}
+
     def get_employee_tickets(self, employee_id: str) -> Dict:
-        """Get all tickets for an employee."""
+        """Get all tickets for an employee"""
         try:
             return self.ticket_tool.get_employee_tickets(employee_id)
         except Exception as e:
-            print(f"Error getting tickets: {str(e)}")
+            print(f"Error getting employee tickets: {str(e)}")
             return {"error": "Could not retrieve tickets"}
-        
-    def get_all_tickets(self):
-        """Reads and returns all tickets from the CSV file, handling NaN values."""
-        try:
-            df = pd.read_csv(self.ticket_tool.tickets_file)
-
-            # Replace NaN values with appropriate defaults
-            df = df.fillna({'description': '', 'manager_id': '', 'response_date': '', 'updated_at': ''})
-
-            tickets = df.to_dict('records')
-            return tickets
-        except Exception as e:
-            print(f"Error reading tickets: {str(e)}")
-            return []
-    
-    def _create_mapping(self, document_id: str, collection_id: str):
-        """Creates a new mapping entry in the CSV file."""
-        try:
-            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            new_mapping = pd.DataFrame([{
-                'document_id': document_id,
-                'collection_id': collection_id,
-                'created_at': timestamp
-            }])
-
-            if not os.path.exists(config.DOCUMENT_MAPPING_FILE):
-                new_mapping.to_csv(config.DOCUMENT_MAPPING_FILE, index=False)
-            else:
-                mapping_df = pd.read_csv(config.DOCUMENT_MAPPING_FILE)
-                mapping_df = pd.concat([mapping_df, new_mapping], ignore_index=True)
-                mapping_df.to_csv(config.DOCUMENT_MAPPING_FILE, index=False)
-
-        except Exception as e:
-            print(f"Error creating mapping: {str(e)}")
-
-    def _get_collection_id(self, document_id: str) -> str | None:
-        """Retrieves the collection_id for a given document_id."""
-        try:
-            if not os.path.exists(config.DOCUMENT_MAPPING_FILE):
-                return None
-
-            mapping_df = pd.read_csv(config.DOCUMENT_MAPPING_FILE)
-            mapping = mapping_df[mapping_df['document_id'] == document_id]
-
-            if not mapping.empty:
-                return mapping.iloc[0]['collection_id']
-            else:
-                return None
-
-        except Exception as e:
-            print(f"Error getting collection ID: {str(e)}")
-            return None
-
-    def _delete_mapping(self, document_id: str):
-        """Deletes a mapping entry from the CSV file."""
-        try:
-            if not os.path.exists(config.DOCUMENT_MAPPING_FILE):
-                return
-
-            mapping_df = pd.read_csv(config.DOCUMENT_MAPPING_FILE)
-            mapping_df = mapping_df[mapping_df['document_id'] != document_id]
-            mapping_df.to_csv(config.DOCUMENT_MAPPING_FILE, index=False)
-
-        except Exception as e:
-            print(f"Error deleting mapping: {str(e)}")
-
-    def add_document(self, filepath: str) -> bool:
-        """Add a new document to the RAG system."""
-        try:
-            collection_id = self.rag_tool.rag_system.process_document(filepath)
-            if collection_id:
-                document_id = os.path.basename(filepath)  # Use filename as document_id
-                self._create_mapping(document_id, collection_id)  # Create the mapping
-                self.active_docs.append(filepath)
-                return True
-            return False
-        except Exception as e:
-            print(f"Error adding document: {str(e)}")
-            return False
-
-    def delete_document_and_collection(self, document_id: str) -> bool:
-        """Deletes a document and its associated ChromaDB collection.
-
-        Args:
-            document_id: The ID of the document to delete (filename).
-
-        Returns:
-            True if successful, False otherwise.
-        """
-        try:
-            # 1. Get the collection_id from the mapping
-            collection_id = self._get_collection_id(document_id)
-            if collection_id is None:
-                print(f"No mapping found for document ID: {document_id}")
-                return False
-
-            # 2. Delete the ChromaDB collection
-            if self.rag_tool.rag_system.remove_collection(collection_id):
-                print(f"collection {collection_id} deleted successfully")
-
-            # 3. Delete the mapping
-            self._delete_mapping(document_id)
-            print(f"Mapping for document {document_id} deleted successfully.")
-
-            # 4. Delete the document file
-            document_path = os.path.join(self.rag_tool.rag_system.base_path, 'documents', document_id)
-            if os.path.exists(document_path):
-                os.remove(document_path)
-                print(f"Document file {document_path} deleted successfully.")
-            else:
-                print(f"Document file not found: {document_path}")
-
-            return True
-
-        except Exception as e:
-            print(f"Error deleting document and collection: {str(e)}")
-            return False
-    
 
 def main():
+    """Test the improved HR Agent"""
     load_dotenv()
-    UPLOAD_FOLDER = 'data/documents'
-    ALLOWED_EXTENSIONS = {'pdf', 'docx', 'doc', 'txt'}
     google_api_key = os.getenv('GOOGLE_API_KEY')
     openai_api_key = os.getenv('OPENAI_API_KEY')
-    
 
-    """Test the HR Agent"""
     try:
         # Initialize agent
         agent = HRAgent(
-    google_api_key=google_api_key,
-    openai_api_key=openai_api_key,
-    vacations_file='data/vacations.csv',
-    tickets_file='data/tickets.csv'
-)
+            google_api_key=google_api_key,
+            openai_api_key=openai_api_key,
+            vacations_file='data/vacations.csv',
+            tickets_file='data/tickets.csv'
+        )
 
-        # Test queries
-        test_queries = [
-            " يقسم المعينون على بند الأجور إلى المجموعات الآتية؟",  # Should use PolicyQuery
-            "ما هو نص المادة الاولى  ",  # Should use CheckVacationBalance
-            " ما هي مجموعة العاديين  ",  # Should use CreateVacationRequest
-            "ما هي سياسة العمل عن بعد؟",  # Should use PolicyQuery, then offer ticket
-            "لا, هذا غير مفيد",  # Should offer to create a ticket after a previous query
-            "اريد التحدث مع احد موظفي الموارد البشرية",  # Should create a support ticket
-            "اريد تقديم طلب اجازة من 2025-10-11 الى 2025-10-15 نوعها سنوية", # Should extract info and use CreateVacationRequest,
-            "My employee id is 1001, what is my vacation balance?", # Should use CheckVacationBalance with the extracted ID
-            "Please tell me my remaining vacation days?", # Should ask for employee ID if not provided
+        # Test conversation flows
+        test_conversations = [
+            # Vacation request flow
+            [
+                ("اريد ان اقدم طلب اجازة", "1001"),
+                ("تاريخ البدء 2025-07-01", "1001"),
+                ("تاريخ الانتهاء 2025-07-10 ونوعها سنوية", "1001"),
+                ("نعم", "1001")
+            ],
+            # Support ticket flow
+            [
+                ("ما هي سياسة العمل عن بعد؟", "1001"),
+                ("لا هذا غير مفيد", "1001"),
+                ("نعم أريد التحدث مع موظف", "1001")
+            ]
         ]
 
-        for query in test_queries:
-            print(f"\nQuery: {query}")
-            response = agent.process_query(query, employee_id="1001") # Provide a test employee ID for now
-            print(f"Response: {response}")
+        for conversation in test_conversations:
+            print("\nTesting new conversation flow:")
+            for message, emp_id in conversation:
+                print(f"\nUser ({emp_id}): {message}")
+                response = agent.process_query(message, employee_id=emp_id)
+                print(f"Agent: {response}")
 
     except Exception as e:
-        print(f"Error in main: {str(e)}")
+        print(f"Test failed: {str(e)}")
 
 if __name__ == "__main__":
     main()

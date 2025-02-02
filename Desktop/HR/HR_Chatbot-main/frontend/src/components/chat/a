@@ -1,0 +1,59 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Calendar, ArrowRight, Clock, FileText } from 'lucide-react';
+import { VacationAction } from '../types/chat';
+
+interface VacationActionButtonProps {
+  action: VacationAction;
+  onClick: () => void;
+  className?: string;
+}
+
+const VacationActionButton = ({ action, onClick, className = '' }: VacationActionButtonProps) => {
+  const getIcon = () => {
+    switch (action) {
+      case 'view_balance':
+        return Clock;
+      case 'request_vacation':
+        return Calendar;
+      case 'view_requests':
+        return FileText;
+      case 'goto_vacation_page':
+        return ArrowRight;
+      default:
+        return Calendar;
+    }
+  };
+
+  const getLabel = () => {
+    switch (action) {
+      case 'view_balance':
+        return 'عرض الرصيد';
+      case 'request_vacation':
+        return 'طلب إجازة';
+      case 'view_requests':
+        return 'الطلبات السابقة';
+      case 'goto_vacation_page':
+        return 'صفحة الإجازات';
+      default:
+        return '';
+    }
+  };
+
+  const Icon = getIcon();
+
+  return (
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-600 
+                 rounded-lg hover:bg-primary-100 transition-colors ${className}`}
+    >
+      <Icon className="w-4 h-4" />
+      {getLabel()}
+    </motion.button>
+  );
+};
+
+export default VacationActionButton;
