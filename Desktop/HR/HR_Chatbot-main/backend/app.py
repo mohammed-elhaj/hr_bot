@@ -66,8 +66,14 @@ def login():
         'name': 'Admin User',
         'role': 'admin',
         'employee_id': '9001'
+    },
+    'user2': {
+        'id': '1002',
+        'name': 'سارة احمد',
+        'role': 'employee',
+        'employee_id': '1002'
     }
-                }
+}
     
     if username in mock_users:
         return jsonify({
