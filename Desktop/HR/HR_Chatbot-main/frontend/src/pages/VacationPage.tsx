@@ -14,7 +14,7 @@ import {
 import Layout from '../components/common/Layout';
 import { useAuth } from '../hooks/useAuth';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = '/';
 
 const VACATION_TYPES = [
   { value: 'annual', label: 'إجازة سنوية' },
